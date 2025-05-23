@@ -5,7 +5,7 @@ services:
     build: ./app-main
     container_name: app_main
     ports:
-      - "5000:5000"
+      - "8080:5000"
     depends_on:
       - mongo
     environment:
@@ -17,7 +17,7 @@ services:
     build: ./report-service
     container_name: report_service
     ports:
-      - "5001:5001"
+      - "8081:5001"
     depends_on:
       - mongo
     environment:
