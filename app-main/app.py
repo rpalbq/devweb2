@@ -24,7 +24,7 @@ try:
     models.init_db(db)
     
 except Exception as e:
-    print(f"❌ Erro ao conectar MongoDB: {e}")
+    print(f"Erro ao conectar MongoDB: {e}")
     exit(1)
 
 #Rotas
@@ -32,7 +32,7 @@ except Exception as e:
 @app.route('/')
 def home():
     return jsonify({
-        "message": "🎵 MoodTracker API funcionando!",
+        "message": "🎵 API funcionando",
         "service": "app-main",
         "port": 5000,
         "status": "OK",
@@ -70,11 +70,50 @@ def test_db():
 
 #Rotas dos Usuarios
 
+@app.route('/users', methods=['POST'])
+def create_user():
+    """Criar novo usuário"""
+    try:
+        data = request.get_json()
+        
+        # Validar dados obrigatórios
+        if not data:
+            return jsonify({"error": "JSON é obrigatório"}), 400
+        
+        required_fields = ['username', 'email', 'password']
+        missing_fields = [field for field in required_fields if field not in data or not data[field]]
+        
+        if missing_fields:
+            return jsonify({
+                "error": f"Campos obrigatórios: {', '.join(missing_fields)}"
+            }), 400
+        
+        # Hash da senha
+        password_hash = generate_password_hash(data['password'])
+        
+        # Criar usuário usando models
+        result = models.create_user(
+            username=data['username'],
+            email=data['email'],
+            password_hash=password_hash
+        )
+        
+        if 'error' in result:
+            return jsonify(result), 400
+        
+        return jsonify(result), 201
+        
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
+
+
+
 @app.route('/users', methods=['GET'])
 def list_users():
     """Listar todos os usuários"""
     try:
-        users = models.list_all_users()
+        users = models.list_all_users() #Depende de uma função do models
         return jsonify({
             "users": users,
             "total": len(users)
@@ -254,6 +293,32 @@ def create_mood():
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+        
+        
+@app.route('/moods/user/<user_id>', methods=['GET'])
+def get_user_moods(user_id):
+    """Buscar humores de um usuário"""
+    try:
+        limit = request.args.get('limit', 20, type=int)
+        detailed = request.args.get('detailed', 'false').lower() == 'true'
+        
+        if detailed:
+            # Com informações das músicas
+            moods = models.get_mood_entries_with_songs(user_id, limit=limit)
+        else:
+            # Apenas as entradas
+            moods = models.list_mood_entries(user_id, limit=limit)
+        
+        return jsonify({
+            "moods": moods,
+            "total": len(moods),
+            "user_id": user_id,
+            "detailed": detailed
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+        
+        
 
 @app.route('/moods/<mood_id>', methods=['GET'])
 def get_mood(mood_id):
@@ -298,6 +363,71 @@ def delete_mood(mood_id):
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+        
+        
+        
+        # Estatísticas
+
+@app.route('/stats/user/<user_id>')
+def get_user_stats(user_id):
+    """Estatísticas do usuário"""
+    try:
+        days = request.args.get('days', 30, type=int)
+        stats = models.get_user_mood_stats(user_id, days=days)
+        
+        if 'error' in stats:
+            return jsonify(stats), 400
+        
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Parte de login/acesso
+
+@app.route('/auth/login', methods=['POST'])
+def login():
+    """Login do usuário"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('email') or not data.get('password'):
+            return jsonify({"error": "Email e senha são obrigatórios"}), 400
+        
+        # Buscar usuário
+        user = models.get_user_by_email(data['email'])
+        if not user:
+            return jsonify({"error": "Credenciais inválidas"}), 401
+        
+        # Verificar senha
+        if not check_password_hash(user['password_hash'], data['password']):
+            return jsonify({"error": "Credenciais inválidas"}), 401
+        
+        # Remover senha da resposta
+        user.pop('password_hash', None)
+        
+        return jsonify({
+            "success": True,
+            "message": "Login realizado com sucesso!",
+            "user": user
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# erros 
+
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({"error": "Endpoint não encontrado"}), 404
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    return jsonify({"error": "Método não permitido"}), 405
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({"error": "Erro interno do servidor"}), 500
+
 
 #Execução do app
 if __name__ == '__main__':
