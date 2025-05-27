@@ -240,6 +240,56 @@ def list_mood_entries(user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"Erro ao listar entradas de humor: {e}")
         return []
+        
+        
+        
+def get_mood_entries_with_songs(user_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+    """Buscar entradas de humor com informações das músicas (JOIN)"""
+    try:
+        pipeline = [
+            {"$match": {"user_id": ObjectId(user_id)}},
+            {"$sort": {"created_at": -1}},
+            {"$limit": limit},
+            {"$lookup": {
+                "from": "songs",
+                "localField": "song_id",
+                "foreignField": "_id", 
+                "as": "song_info"
+            }},
+            {"$lookup": {
+                "from": "users",
+                "localField": "user_id",
+                "foreignField": "_id",
+                "as": "user_info"
+            }}
+        ]
+        
+        results = []
+        for entry in db.mood_entries.aggregate(pipeline):
+            entry["_id"] = str(entry["_id"])
+            entry["user_id"] = str(entry["user_id"])
+            entry["song_id"] = str(entry["song_id"])
+            
+            # Adicionar info da música e usuário
+            if entry["song_info"]:
+                entry["song"] = entry["song_info"][0]
+                entry["song"]["_id"] = str(entry["song"]["_id"])
+            
+            if entry["user_info"]:
+                entry["user"] = {"username": entry["user_info"][0]["username"]}
+            
+            # Limpar campos auxiliares
+            entry.pop("song_info", None)
+            entry.pop("user_info", None)
+            
+            results.append(entry)
+        
+        return results
+        
+    except Exception as e:
+        print(f"Erro ao buscar entradas com músicas: {e}")
+        return []
+        
 
 
 def get_user_mood_stats(user_id: str, days: int = 30) -> Dict[str, Any]:
