@@ -1,10 +1,21 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 import os
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
 
+
 # Importar models
 import models
+
+#Flash utilizando a pasta templates
+
+app = Flask(
+    __name__,
+    static_folder="templates",     
+    template_folder="templates"    
+)
+
+
 
 app = Flask(__name__)
 
@@ -28,6 +39,12 @@ except Exception as e:
     exit(1)
 
 #Rotas
+
+@app.route('/')
+def index():
+    return send_from_directory('templates', 'index.html')
+
+
 
 @app.route('/')
 def home():
