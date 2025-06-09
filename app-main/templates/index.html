@@ -473,6 +473,15 @@
             transform: scale(1);
         }
 
+        .custom-song-hint {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-top: 0.25rem;
+            font-style: italic;
+        }
+        
+        
+        
         /* Toast */
         .toast {
             position: fixed;
@@ -713,9 +722,16 @@
                 <form id="mood-form">
                     <div class="form-group">
                         <label for="song-select">Qual música representa seu humor?</label>
-                        <select id="song-select" class="form-control">
+                        <select id="song-select" class="form-control" onchange="toggleCustomSong()">
                             <option value="">Selecione uma música</option>
+                            <option value="custom">Adicionar outra música ✏️</option>
                         </select>
+                    </div>
+                    
+                    <div class="form-group" id="custom-song-group" style="display: none;">
+                        <label for="custom-song">Digite o nome da música:</label>
+                        <input type="text" id="custom-song" class="form-control" placeholder="Nome da música - Artista">
+                        <div class="custom-song-hint">Exemplo: The Show Must Go On - Queen</div>
                     </div>
 
                     <div class="form-group">
@@ -839,6 +855,24 @@
                 particle.style.animationDelay = `${index * 2}s`;
             });
         }
+        
+        // adicao de nova musica 
+        function toggleCustomSong() {
+            const select = document.getElementById('song-select');
+            const customGroup = document.getElementById('custom-song-group');
+             
+            if (select.value === 'custom') {
+                customGroup.style.display = 'block';
+                
+                setTimeout(() => {
+                    document.getElementById('custom-song').focus();
+                }, 100);
+            } else {
+                customGroup.style.display = 'none';
+                document.getElementById('custom-song').value = '';
+            }
+        }
+            
 
         // Navigation
         function showSection(sectionName) {
@@ -915,7 +949,8 @@
 
         function updateSongSelect() {
             const select = document.getElementById('song-select');
-            select.innerHTML = '<option value="">Selecione uma música</option>';
+            select.innerHTML = `<option value="">Selecione uma música</option>
+                                <option value="custom">Adicionar outra música ✏️</option>`;
             
             songs.forEach(song => {
                 const option = document.createElement('option');
@@ -1061,12 +1096,22 @@
                     return;
                 }
                 
-                const songId = document.getElementById('song-select').value;
+                const songSelect = document.getElementById('song-select');
+                const customSong = document.getElementById('custom-song');
+                const songId = songSelect.value;
                 const comment = document.getElementById('mood-comment').value;
-                
-                if (!songId) {
-                    showToast('Por favor, selecione uma música', 'error');
+
+                if (!songId || (songId === 'custom' && !customSong.value.trim())) {
+                    showToast('Por favor, selecione ou digite uma música', 'error');
                     return;
+                }
+                
+                let songName;
+                if (songId === 'custom') {
+                    songName = customSong.value.trim();
+                
+                } else {
+                    songName = songSelect.options[songSelect.selectedIndex].text;
                 }
                 
                 // Modo Demo 
@@ -1139,6 +1184,7 @@
             });
             selectedEmoji = '';
             selectedMoodName = '';
+            document.getElementById('custom-song-group').style.display = 'none';
         }
 
         function updateUserMenu() {
