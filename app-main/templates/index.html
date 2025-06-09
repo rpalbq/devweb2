@@ -417,6 +417,7 @@
             text-align: center;
             transition: all 0.3s ease;
         }
+        
 
         .stat-card:hover {
             transform: translateY(-5px);
@@ -426,14 +427,11 @@
         .stat-number {
             font-size: 2.5rem;
             font-weight: bold;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            filter: drop-shadow(0 0 8px rgba(79, 70, 229, 0.4));
         }
 
         .stat-label {
-            color: var(--gray);
+            color: var(--light);
             font-size: 0.875rem;
             margin-top: 0.5rem;
         }
