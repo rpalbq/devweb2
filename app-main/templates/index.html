@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎵 MoodTracker</title>
+    <title>MoodTracker - Registre suas emoções através da música</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
@@ -13,43 +13,90 @@
         }
 
         :root {
-            --primary: #667eea;
-            --primary-dark: #764ba2;
-            --secondary: #f093fb;
-            --accent: #ffecd2;
-            --dark: #2d3748;
-            --light: #f7fafc;
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #ec4899;
+            --accent: #f59e0b;
+            --dark: #1e293b;
+            --dark-light: #334155;
+            --light: #f8fafc;
             --white: #ffffff;
-            --gray: #a0aec0;
-            --success: #48bb78;
-            --warning: #ed8936;
-            --error: #f56565;
-            --shadow: 0 10px 25px rgba(0,0,0,0.1);
-            --gradient: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            --gray: #64748b;
+            --success: #10b981;
+            --error: #ef4444;
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0f172a;
+            color: var(--light);
             min-height: 100vh;
-            color: var(--dark);
+            overflow-x: hidden;
         }
 
-        .app-container {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+        /* Fundo animado */
+        .bg-animation {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            background: linear-gradient(45deg, #0f172a 0%, #1e293b 100%);
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 70%, rgba(236, 72, 153, 0.2) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 80%, rgba(245, 158, 11, 0.2) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Floating particles */
+        .particle {
+            position: absolute;
+            background: var(--primary);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 20s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            25% { transform: translateY(-100px) translateX(50px); }
+            50% { transform: translateY(-50px) translateX(-50px); }
+            75% { transform: translateY(-150px) translateX(25px); }
         }
 
         /* Header */
         .header {
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(10px);
-            padding: 20px 0;
-            box-shadow: var(--shadow);
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
             position: sticky;
             top: 0;
             z-index: 100;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
         }
 
         .nav {
@@ -58,11 +105,326 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 20px;
+            padding: 1rem 2rem;
         }
 
         .logo {
-            font-size: 2rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--light);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-links a::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: var(--primary);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .nav-links a:hover::before {
+            width: 100%;
+            height: 100%;
+        }
+
+        .nav-links a:hover {
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .nav-links a span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn {
+            background: var(--gradient);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .btn:hover::before {
+            transform: translateX(0);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn.secondary {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn.secondary:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Main Content */
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            margin-bottom: 4rem;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 5s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--gray);
+            margin-bottom: 2rem;
+        }
+
+        /* Cards */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.8s ease-out backwards;
+        }
+
+        .card:nth-child(2) { animation-delay: 0.1s; }
+        .card:nth-child(3) { animation-delay: 0.2s; }
+
+        .card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--gradient);
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Emoji Section */
+        .mood-section {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .mood-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .mood-item {
+            background: var(--dark);
+            border: 2px solid transparent;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mood-item::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: var(--primary);
+            opacity: 0.3;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.5s ease;
+        }
+
+        .mood-item:hover::before {
+            width: 200%;
+            height: 200%;
+        }
+
+        .mood-item:hover {
+            border-color: var(--primary);
+            transform: translateY(-5px);
+        }
+
+        .mood-item.selected {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .mood-emoji {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            display: block;
+            filter: grayscale(0.3);
+            transition: all 0.3s ease;
+        }
+
+        .mood-item:hover .mood-emoji,
+        .mood-item.selected .mood-emoji {
+            filter: grayscale(0);
+            transform: scale(1.2);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--light);
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--dark);
+            border: 2px solid var(--dark-light);
+            border-radius: 0.5rem;
+            color: var(--light);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
             font-weight: bold;
             background: var(--gradient);
             -webkit-background-clip: text;
@@ -70,322 +432,20 @@
             background-clip: text;
         }
 
-        .nav-links {
-            display: flex;
-            gap: 30px;
-            list-style: none;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--dark);
-            font-weight: 500;
-            transition: all 0.3s ease;
-            padding: 10px 15px;
-            border-radius: 10px;
-        }
-
-        .nav-links a:hover {
-            background: var(--gradient);
-            color: white;
-            transform: translateY(-2px);
-        }
-
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .btn {
-            background: var(--gradient);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn.secondary {
-            background: white;
-            color: var(--primary);
-            border: 2px solid var(--primary);
-        }
-
-        /* Main Content */
-        .main {
-            flex: 1;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px;
-            width: 100%;
-        }
-
-        /* Hero Section */
-        .hero {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-
-        .hero h1 {
-            font-size: 3.5rem;
-            color: white;
-            margin-bottom: 20px;
-            text-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-
-        .hero p {
-            font-size: 1.3rem;
-            color: rgba(255,255,255,0.9);
-            margin-bottom: 30px;
-        }
-
-        /* Cards Grid */
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-bottom: 40px;
-        }
-
-        .card {
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: var(--shadow);
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .card-icon {
-            width: 50px;
-            height: 50px;
-            background: var(--gradient);
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-        }
-
-        .card h3 {
-            font-size: 1.5rem;
-            color: var(--dark);
-        }
-
-        .card p {
-            color: var(--gray);
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
-
-       
-        .form-container {
-            background: rgba(255,255,255,0.95);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: var(--shadow);
-            margin-bottom: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 25px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--dark);
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            background: white;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-
-        
-        .mood-section {
-            background: rgba(255,255,255,0.95);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: var(--shadow);
-            margin-bottom: 30px;
-        }
-
-        .mood-emoji-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .emoji-option {
-            width: 80px;
-            height: 80px;
-            border: 3px solid transparent;
-            border-radius: 20px;
-            background: #f7fafc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .emoji-option:hover {
-            background: var(--primary);
-            color: white;
-            transform: scale(1.1);
-        }
-
-        .emoji-option.selected {
-            border-color: var(--primary);
-            background: rgba(102, 126, 234, 0.1);
-            transform: scale(1.05);
-        }
-
-       
-        .recent-moods {
-            display: grid;
-            gap: 20px;
-        }
-
-        .mood-item {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            border-left: 4px solid var(--primary);
-            transition: all 0.3s ease;
-        }
-
-        .mood-item:hover {
-            transform: translateX(5px);
-            box-shadow: var(--shadow);
-        }
-
-        .mood-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .mood-emoji {
-            font-size: 2rem;
-        }
-
-        .mood-time {
-            color: var(--gray);
-            font-size: 0.9rem;
-        }
-
-        .mood-song {
-            font-weight: 600;
-            color: var(--dark);
-            margin-bottom: 5px;
-        }
-
-        .mood-artist {
-            color: var(--gray);
-            margin-bottom: 10px;
-        }
-
-        .mood-comment {
-            color: var(--dark);
-            font-style: italic;
-        }
-
-     
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow);
-        }
-
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: var(--primary);
-            margin-bottom: 5px;
-        }
-
         .stat-label {
             color: var(--gray);
-            font-weight: 500;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
         }
 
-        /* Modals */
+        /* Modal */
         .modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.8);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -401,14 +461,13 @@
         }
 
         .modal-content {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
+            background: var(--dark);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            padding: 2rem;
             max-width: 500px;
             width: 90%;
-            max-height: 90%;
-            overflow-y: auto;
-            transform: scale(0.7);
+            transform: scale(0.8);
             transition: all 0.3s ease;
         }
 
@@ -416,98 +475,16 @@
             transform: scale(1);
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--gray);
-            transition: color 0.3s ease;
-        }
-
-        .close-btn:hover {
-            color: var(--dark);
-        }
-
-        /* Loading */
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .nav {
-                flex-direction: column;
-                gap: 20px;
-            }
-
-            .nav-links {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 15px;
-            }
-
-            .hero h1 {
-                font-size: 2.5rem;
-            }
-
-            .cards-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            .mood-emoji-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-
-            .emoji-option {
-                width: 60px;
-                height: 60px;
-                font-size: 1.5rem;
-            }
-        }
-
-        /* Hide/Show sections */
-        .section {
-            display: none;
-        }
-
-        .section.active {
-            display: block;
-        }
-
-        /* Toast notifications */
+        /* Toast */
         .toast {
             position: fixed;
-            top: 20px;
-            right: 20px;
+            bottom: 2rem;
+            right: 2rem;
             background: var(--success);
             color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: var(--shadow);
-            transform: translateX(100%);
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            transform: translateX(400px);
             transition: transform 0.3s ease;
             z-index: 1001;
         }
@@ -519,255 +496,361 @@
         .toast.error {
             background: var(--error);
         }
+
+        /* Musica Visualização*/
+        .music-visualizer {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            height: 30px;
+            margin: 1rem 0;
+        }
+
+        .bar {
+            width: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+            animation: dance 1s ease-in-out infinite;
+        }
+
+        .bar:nth-child(1) { animation-delay: 0s; height: 20px; }
+        .bar:nth-child(2) { animation-delay: 0.1s; height: 30px; }
+        .bar:nth-child(3) { animation-delay: 0.2s; height: 25px; }
+        .bar:nth-child(4) { animation-delay: 0.3s; height: 30px; }
+        .bar:nth-child(5) { animation-delay: 0.4s; height: 20px; }
+
+        @keyframes dance {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.5); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .nav-links { display: none; }
+            .cards-grid { grid-template-columns: 1fr; }
+            .mood-grid { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+        }
+
+        /* Parte de loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Sections */
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Header -->
-        <header class="header">
-            <nav class="nav">
-                <div class="logo">
-                    <i class="fas fa-music"></i> MoodMusic
+    <div class="bg-animation">
+        <div class="particle" style="width: 20px; height: 20px; top: 10%; left: 20%;"></div>
+        <div class="particle" style="width: 15px; height: 15px; top: 50%; left: 80%;"></div>
+        <div class="particle" style="width: 25px; height: 25px; top: 70%; left: 30%;"></div>
+        <div class="particle" style="width: 18px; height: 18px; top: 30%; left: 60%;"></div>
+        <div class="particle" style="width: 22px; height: 22px; top: 80%; left: 70%;"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <div class="logo">
+                <i class="fas fa-music"></i>
+                MoodTracker
+            </div>
+            <ul class="nav-links">
+                <li><a href="#" onclick="showSection('home')"><span><i class="fas fa-home"></i> Início</span></a></li>
+                <li><a href="#" onclick="showSection('track')"><span><i class="fas fa-smile"></i> Registrar</span></a></li>
+                <li><a href="#" onclick="showSection('history')"><span><i class="fas fa-history"></i> Histórico</span></a></li>
+                <li><a href="#" onclick="showSection('stats')"><span><i class="fas fa-chart-line"></i> Estatísticas</span></a></li>
+            </ul>
+            <div class="user-menu">
+                <button class="btn secondary" onclick="openModal('login-modal')">
+                    <i class="fas fa-user"></i> Entrar
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Home Section -->
+        <section id="home" class="section active">
+            <div class="hero">
+                <h1>Como está seu humor hoje?</h1>
+                <p>Conecte suas emoções com a música e descubra padrões no seu bem-estar</p>
+                <button class="btn" onclick="showSection('track')">
+                    <i class="fas fa-plus-circle"></i> Registrar Humor
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-moods">0</div>
+                    <div class="stat-label">Humores Registrados</div>
                 </div>
-                <ul class="nav-links">
-                    <li><a href="#" onclick="showSection('home')"><i class="fas fa-home"></i> Início</a></li>
-                    <li><a href="#" onclick="showSection('track')"><i class="fas fa-heart"></i> Registrar Humor</a></li>
-                    <li><a href="#" onclick="showSection('history')"><i class="fas fa-history"></i> Histórico</a></li>
-                    <li><a href="#" onclick="showSection('stats')"><i class="fas fa-chart-bar"></i> Estatísticas</a></li>
-                </ul>
-                <div class="user-menu">
-                    <button class="btn secondary" onclick="openModal('login-modal')">
-                        <i class="fas fa-user"></i> Login
-                    </button>
+                <div class="stat-card">
+                    <div class="stat-number" id="total-songs">0</div>
+                    <div class="stat-label">Músicas Adicionadas</div>
                 </div>
-            </nav>
-        </header>
-
-        
-        <main class="main">
-            <!-- Home Section -->
-            <section id="home" class="section active">
-                <div class="hero">
-                    <h1>Como você está se sentindo?</h1>
-                    <p>Registre suas emoções através da música e descubra padrões no seu humor</p>
-                    <button class="btn" onclick="showSection('track')">
-                        <i class="fas fa-plus"></i> Registrar Humor Agora
-                    </button>
+                <div class="stat-card">
+                    <div class="stat-number" id="current-streak">0</div>
+                    <div class="stat-label">Dias Consecutivos</div>
                 </div>
-
-                <div class="cards-grid">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-icon">
-                                <i class="fas fa-heart"></i>
-                            </div>
-                            <h3>Rastreie Emoções</h3>
-                        </div>
-                        <p>Conecte suas músicas favoritas com seus sentimentos e descubra como a música afeta seu humor.</p>
-                        <button class="btn" onclick="showSection('track')">Começar</button>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-icon">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <h3>Analise Padrões</h3>
-                        </div>
-                        <p>Visualize tendências no seu humor ao longo do tempo e descubra insights sobre você mesmo.</p>
-                        <button class="btn" onclick="showSection('stats')">Ver Análises</button>
-                    </div>
-
-
+                <div class="stat-card">
+                    <div class="stat-number" id="favorite-mood">😊</div>
+                    <div class="stat-label">Humor Mais Frequente</div>
                 </div>
+            </div>
 
-               
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="total-moods">0</div>
-                        <div class="stat-label">Humores Registrados</div>
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-heart"></i>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="total-songs">0</div>
-                        <div class="stat-label">Músicas Descobertas</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="current-streak">0</div>
-                        <div class="stat-label">Dias Consecutivos</div>
-                    </div>
-                </div>
-            </section>
-
-            
-            <section id="track" class="section">
-                <div class="mood-section">
-                    <h2><i class="fas fa-heart"></i> Como você está se sentindo agora?</h2>
-                    
-                    <div class="mood-emoji-grid">
-                        <div class="emoji-option" data-emoji="😊" onclick="selectMood('😊', 'Feliz')">😊</div>
-                        <div class="emoji-option" data-emoji="😢" onclick="selectMood('😢', 'Triste')">😢</div>
-                        <div class="emoji-option" data-emoji="😍" onclick="selectMood('😍', 'Apaixonado')">😍</div>
-                        <div class="emoji-option" data-emoji="😡" onclick="selectMood('😡', 'Bravo')">😡</div>
-                        <div class="emoji-option" data-emoji="😴" onclick="selectMood('😴', 'Cansado')">😴</div>
-                        <div class="emoji-option" data-emoji="🥳" onclick="selectMood('🥳', 'Animado')">🥳</div>
-                        <div class="emoji-option" data-emoji="😱" onclick="selectMood('😱', 'Surpreso')">😱</div>
-                        <div class="emoji-option" data-emoji="🤔" onclick="selectMood('🤔', 'Pensativo')">🤔</div>
-                    </div>
-
-                    <form id="mood-form" class="form-container">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="song-search">🎵 Que música está tocando?</label>
-                                <input type="text" id="song-search" placeholder="Pesquisar música ou artista...">
-                            </div>
-                            <div class="form-group">
-                                <label for="song-select">Ou escolha uma música:</label>
-                                <select id="song-select">
-                                    <option value="">Selecione uma música</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="mood-comment">💭 Como se sentiu hoje?</label>
-                            <textarea id="mood-comment" rows="3" placeholder="Descreva seus sentimentos..."></textarea>
-                        </div>
-
-                        <input type="hidden" id="selected-emoji">
-                        <input type="hidden" id="selected-mood-name">
-
-                        <button type="submit" class="btn">
-                            <i class="fas fa-save"></i> Salvar Humor
-                        </button>
-                    </form>
-                </div>
-            </section>
-
-           
-            <section id="history" class="section">
-                <div class="form-container">
-                    <h2><i class="fas fa-history"></i> Histórico de Humores</h2>
-                    <p>Veja como seus sentimentos evoluíram ao longo do tempo</p>
-                    
-                    <div class="recent-moods" id="mood-history">
-                        <!-- Mood items will be loaded here -->
+                    <h3>Rastreie suas Emoções</h3>
+                    <p>Registre como você se sente todos os dias e veja a evolução do seu humor ao longo do tempo</p>
+                    <div class="music-visualizer">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
                     </div>
                 </div>
-            </section>
 
-           
-            <section id="stats" class="section">
-                <div class="form-container">
-                    <h2><i class="fas fa-chart-bar"></i> Suas Estatísticas</h2>
-                    
-                    <div class="stats-grid" id="detailed-stats">
-                        <!-- Stats will be loaded here -->
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-music"></i>
+                    </div>
+                    <h3>Conecte com Música</h3>
+                    <p>Associe suas músicas favoritas aos seus sentimentos e crie uma trilha sonora da sua vida</p>
+                    <div class="music-visualizer">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
                     </div>
                 </div>
-            </section>
-        </main>
 
-        <!-- Login Modal -->
-        <div id="login-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>👤 Entrar na sua conta</h3>
-                    <button class="close-btn" onclick="closeModal('login-modal')">&times;</button>
+                <div class="card">
+                    <div class="card-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h3>Análises Detalhadas</h3>
+                    <p>Obtenha insights sobre seus padrões emocionais e descubra o que influencia seu bem-estar</p>
+                    <div class="music-visualizer">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                    </div>
                 </div>
-                
-                <form id="login-form">
+            </div>
+        </section>
+
+        <!-- Track Mood Section -->
+        <section id="track" class="section">
+            <div class="mood-section">
+                <h2>Como você está se sentindo?</h2>
+                <div class="mood-grid">
+                    <div class="mood-item" onclick="selectMood('😊', 'Feliz')">
+                        <span class="mood-emoji">😊</span>
+                        <span>Feliz</span>
+                    </div>
+                    <div class="mood-item" onclick="selectMood('😢', 'Triste')">
+                        <span class="mood-emoji">😢</span>
+                        <span>Triste</span>
+                    </div>
+                    <div class="mood-item" onclick="selectMood('😡', 'Bravo')">
+                        <span class="mood-emoji">😡</span>
+                        <span>Bravo</span>
+                    </div>
+                    <div class="mood-item" onclick="selectMood('😰', 'Ansioso')">
+                        <span class="mood-emoji">😰</span>
+                        <span>Ansioso</span>
+                    </div>
+                    <div class="mood-item" onclick="selectMood('😴', 'Cansado')">
+                        <span class="mood-emoji">😴</span>
+                        <span>Cansado</span>
+                    </div>
+                    <div class="mood-item" onclick="selectMood('🥳', 'Animado')">
+                        <span class="mood-emoji">🥳</span>
+                        <span>Animado</span>
+                    </div>
+                    <div class="mood-item" onclick="selectMood('😍', 'Apaixonado')">
+                        <span class="mood-emoji">😍</span>
+                        <span>Apaixonado</span>
+                    </div>
+                    <div class="mood-item" onclick="selectMood('🤔', 'Pensativo')">
+                        <span class="mood-emoji">🤔</span>
+                        <span>Pensativo</span>
+                    </div>
+                </div>
+
+                <form id="mood-form">
                     <div class="form-group">
-                        <label for="login-email">Email:</label>
-                        <input type="email" id="login-email" required>
+                        <label for="song-select">Qual música representa seu humor?</label>
+                        <select id="song-select" class="form-control">
+                            <option value="">Selecione uma música</option>
+                        </select>
                     </div>
-                    
+
                     <div class="form-group">
-                        <label for="login-password">Senha:</label>
-                        <input type="password" id="login-password" required>
+                        <label for="mood-comment">Quer compartilhar algo sobre hoje?</label>
+                        <textarea id="mood-comment" class="form-control" rows="3" placeholder="Como foi seu dia..."></textarea>
                     </div>
-                    
+
+                    <input type="hidden" id="selected-emoji">
+                    <input type="hidden" id="selected-mood-name">
+
                     <button type="submit" class="btn">
-                        <i class="fas fa-sign-in-alt"></i> Entrar
+                        <i class="fas fa-save"></i> Salvar Registro
                     </button>
                 </form>
-                
-                <p style="margin-top: 20px; text-align: center;">
-                    Não tem conta? 
-                    <a href="#" onclick="switchModal('login-modal', 'register-modal')">Registre-se aqui</a>
-                </p>
             </div>
-        </div>
+        </section>
 
-        <!-- Register Modal -->
-        <div id="register-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>📝 Criar conta</h3>
-                    <button class="close-btn" onclick="closeModal('register-modal')">&times;</button>
+        <!-- Seção de histórico -->
+        <section id="history" class="section">
+            <div class="mood-section">
+                <h2>Histórico de Humores</h2>
+                <div id="mood-history">
+                    <!-- Itens de históricos carregados aqui -->
                 </div>
-                
-                <form id="register-form">
-                    <div class="form-group">
-                        <label for="register-username">Nome de usuário:</label>
-                        <input type="text" id="register-username" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="register-email">Email:</label>
-                        <input type="email" id="register-email" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="register-password">Senha:</label>
-                        <input type="password" id="register-password" required minlength="6">
-                    </div>
-                    
-                    <button type="submit" class="btn">
-                        <i class="fas fa-user-plus"></i> Criar Conta
-                    </button>
-                </form>
-                
-                <p style="margin-top: 20px; text-align: center;">
-                    Já tem conta? 
-                    <a href="#" onclick="switchModal('register-modal', 'login-modal')">Entre aqui</a>
-                </p>
             </div>
+        </section>
+
+        <!-- Seção stats -->
+        <section id="stats" class="section">
+            <div class="mood-section">
+                <h2>Estatísticas Detalhadas</h2>
+                <div id="detailed-stats">
+                    <!-- Stats vão ser carregados aqui -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <h3>Entrar na sua conta</h3>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Senha</label>
+                    <input type="password" id="login-password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn">
+                    <i class="fas fa-sign-in-alt"></i> Entrar
+                </button>
+            </form>
+            <p style="margin-top: 1rem; text-align: center;">
+                Não tem conta? <a href="#" onclick="switchModal('login-modal', 'register-modal')" style="color: var(--primary);">Criar conta</a>
+            </p>
+            <button class="btn secondary" style="width: 100%; margin-top: 1rem;" onclick="closeModal('login-modal')">
+                Cancelar
+            </button>
         </div>
     </div>
 
-   
+    <!-- Register Modal -->
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <h3>Criar nova conta</h3>
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="register-username">Nome de usuário</label>
+                    <input type="text" id="register-username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Senha</label>
+                    <input type="password" id="register-password" class="form-control" required minlength="6">
+                </div>
+                <button type="submit" class="btn">
+                    <i class="fas fa-user-plus"></i> Criar Conta
+                </button>
+            </form>
+            <p style="margin-top: 1rem; text-align: center;">
+                Já tem conta? <a href="#" onclick="switchModal('register-modal', 'login-modal')" style="color: var(--primary);">Fazer login</a>
+            </p>
+            <button class="btn secondary" style="width: 100%; margin-top: 1rem;" onclick="closeModal('register-modal')">
+                Cancelar
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast -->
     <div id="toast" class="toast"></div>
 
     <script>
+        // API Configuration
+        const API_BASE = 'http://localhost:5000';
         
-        const API_BASE = 'http://localhost:8080';
-        
-        
+        // State
         let currentUser = null;
         let songs = [];
         let selectedEmoji = '';
         let selectedMoodName = '';
 
-        
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadSongs();
             loadQuickStats();
-            
-           
             setupFormHandlers();
+            
+            // Adição de animação em particulas
+            animateParticles();
         });
 
-        
+        function animateParticles() {
+            const particles = document.querySelectorAll('.particle');
+            particles.forEach((particle, index) => {
+                particle.style.animationDelay = `${index * 2}s`;
+            });
+        }
+
+        // Navigation
         function showSection(sectionName) {
-           
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.remove('active');
             });
             
-            
             document.getElementById(sectionName).classList.add('active');
             
-           
+            // Load section-specific data
             switch(sectionName) {
                 case 'history':
                     loadMoodHistory();
@@ -778,7 +861,7 @@
             }
         }
 
-        
+        // Funções modal
         function openModal(modalId) {
             document.getElementById(modalId).classList.add('active');
         }
@@ -789,18 +872,16 @@
 
         function switchModal(currentModal, targetModal) {
             closeModal(currentModal);
-            openModal(targetModal);
+            setTimeout(() => openModal(targetModal), 300);
         }
 
-        // selecionar mood
+        // Seleção de emoji
         function selectMood(emoji, moodName) {
-           
-            document.querySelectorAll('.emoji-option').forEach(option => {
-                option.classList.remove('selected');
+            document.querySelectorAll('.mood-item').forEach(item => {
+                item.classList.remove('selected');
             });
             
-           
-            document.querySelector(`[data-emoji="${emoji}"]`).classList.add('selected');
+            event.currentTarget.classList.add('selected');
             
             selectedEmoji = emoji;
             selectedMoodName = moodName;
@@ -808,7 +889,7 @@
             document.getElementById('selected-mood-name').value = moodName;
         }
 
-       
+        // Funções API
         async function makeRequest(url, options = {}) {
             try {
                 const response = await fetch(API_BASE + url, {
@@ -825,11 +906,11 @@
             }
         }
 
-      
+        // Carregar sons
         async function loadSongs() {
-            const result = await makeRequest('/songs');
-            if (result.success && result.data.songs) {
-                songs = result.data.songs;
+            const result = await makeRequest('/api/songs');
+            if (result.success && result.data) {
+                songs = result.data;
                 updateSongSelect();
             }
         }
@@ -846,64 +927,139 @@
             });
         }
 
+        // Carregar stats
         async function loadQuickStats() {
-         
-            const [songsResult, usersResult] = await Promise.all([
-                makeRequest('/songs'),
-                makeRequest('/users')
-            ]);
-            
-            if (songsResult.success) {
-                document.getElementById('total-songs').textContent = songsResult.data.total || 0;
-            }
-            
-           
-            document.getElementById('total-moods').textContent = '0';
-            document.getElementById('current-streak').textContent = '0';
+            // Dados simulados para o modo demo
+            document.getElementById('total-moods').textContent = '42';
+            document.getElementById('total-songs').textContent = '28';
+            document.getElementById('current-streak').textContent = '7';
+            document.getElementById('favorite-mood').textContent = '😊';
         }
 
+        // Carregar historico dos emojis
         async function loadMoodHistory() {
             if (!currentUser) {
-                document.getElementById('mood-history').innerHTML = 
-                    '<p>Faça login para ver seu histórico de humores.</p>';
+                document.getElementById('mood-history').innerHTML = `
+                    <div style="text-align: center; padding: 3rem;">
+                        <i class="fas fa-lock" style="font-size: 3rem; color: var(--gray); margin-bottom: 1rem;"></i>
+                        <p>Faça login para ver seu histórico</p>
+                    </div>
+                `;
                 return;
             }
             
-            const result = await makeRequest(`/moods/user/${currentUser.id}?detailed=true`);
-            if (result.success && result.data.moods) {
-                displayMoodHistory(result.data.moods);
-            }
+            // emoji simulados para modo demo
+            const mockHistory = [
+                { emoji: '😊', mood: 'Feliz', song: 'Happy - Pharrell Williams', date: '2025-06-08', comment: 'Dia incrível!' },
+                { emoji: '🤔', mood: 'Pensativo', song: 'Mad World - Gary Jules', date: '2025-06-07', comment: 'Reflexões sobre a vida...' },
+                { emoji: '🥳', mood: 'Animado', song: 'Pump It - The Black Eyed Peas', date: '2025-06-06', comment: 'Festa com os amigos!' }
+            ];
+            
+            displayMoodHistory(mockHistory);
         }
 
         function displayMoodHistory(moods) {
             const container = document.getElementById('mood-history');
             
             if (moods.length === 0) {
-                container.innerHTML = '<p>Nenhum humor registrado ainda. Que tal começar agora?</p>';
+                container.innerHTML = '<p>Nenhum humor registrado ainda.</p>';
                 return;
             }
             
             container.innerHTML = moods.map(mood => `
-                <div class="mood-item">
-                    <div class="mood-header">
-                        <span class="mood-emoji">${mood.emoji}</span>
-                        <span class="mood-time">${new Date(mood.created_at).toLocaleDateString('pt-BR')}</span>
+                <div class="card" style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="display: flex; gap: 1rem;">
+                            <span style="font-size: 3rem;">${mood.emoji}</span>
+                            <div>
+                                <h4>${mood.mood}</h4>
+                                <p style="color: var(--primary); margin: 0.5rem 0;">${mood.song}</p>
+                                <p style="color: var(--gray); font-style: italic;">"${mood.comment}"</p>
+                            </div>
+                        </div>
+                        <span style="color: var(--gray); font-size: 0.875rem;">${mood.date}</span>
                     </div>
-                    <div class="mood-song">${mood.song_details?.title || 'Música não encontrada'}</div>
-                    <div class="mood-artist">${mood.song_details?.artist || ''}</div>
-                    <div class="mood-comment">${mood.comment || ''}</div>
                 </div>
             `).join('');
         }
 
-        
-        function setupFormHandlers() {
+        // Stats detalhados
+        async function loadDetailedStats() {
+            const container = document.getElementById('detailed-stats');
             
+            // stats simulados
+            container.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">😊</div>
+                        <div class="stat-label">Humor mais frequente</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">Rock</div>
+                        <div class="stat-label">Gênero mais ouvido</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">18:00</div>
+                        <div class="stat-label">Horário mais ativo</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">85%</div>
+                        <div class="stat-label">Dias positivos</div>
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-top: 2rem;">
+                    <h3>Distribuição de Humores</h3>
+                    <div style="display: grid; gap: 1rem; margin-top: 1rem;">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span>😊 Feliz</span>
+                                <span>45%</span>
+                            </div>
+                            <div style="background: var(--dark); height: 10px; border-radius: 5px; overflow: hidden;">
+                                <div style="background: var(--primary); height: 100%; width: 45%;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span>🤔 Pensativo</span>
+                                <span>25%</span>
+                            </div>
+                            <div style="background: var(--dark); height: 10px; border-radius: 5px; overflow: hidden;">
+                                <div style="background: var(--secondary); height: 100%; width: 25%;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span>😴 Cansado</span>
+                                <span>20%</span>
+                            </div>
+                            <div style="background: var(--dark); height: 10px; border-radius: 5px; overflow: hidden;">
+                                <div style="background: var(--accent); height: 100%; width: 20%;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span>🥳 Animado</span>
+                                <span>10%</span>
+                            </div>
+                            <div style="background: var(--dark); height: 10px; border-radius: 5px; overflow: hidden;">
+                                <div style="background: var(--success); height: 100%; width: 10%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Form Handlers
+        function setupFormHandlers() {
+            // Emoji Form
             document.getElementById('mood-form').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 if (!selectedEmoji) {
-                    showToast('Selecione um emoji para seu humor!', 'error');
+                    showToast('Por favor, selecione um humor', 'error');
                     return;
                 }
                 
@@ -911,49 +1067,50 @@
                 const comment = document.getElementById('mood-comment').value;
                 
                 if (!songId) {
-                    showToast('Selecione uma música!', 'error');
+                    showToast('Por favor, selecione uma música', 'error');
                     return;
                 }
                 
-                // para teste, criar usuario temporario
+                // Modo Demo 
                 if (!currentUser) {
                     currentUser = { id: 'demo-user' };
                 }
                 
-                const result = await makeRequest('/moods', {
+                const result = await makeRequest('/api/moods', {
                     method: 'POST',
                     body: JSON.stringify({
                         user_id: currentUser.id,
                         song_id: songId,
                         emoji: selectedEmoji,
+                        mood: selectedMoodName,
                         comment: comment
                     })
                 });
                 
                 if (result.success) {
-                    showToast('Humor registrado com sucesso! 🎉');
+                    showToast('Humor registrado com sucesso! ✨');
                     resetMoodForm();
                     loadQuickStats();
                 } else {
-                    showToast('Erro ao registrar humor. Tente novamente.', 'error');
+                    showToast('Erro ao registrar humor', 'error');
                 }
             });
             
-            // formulario de login
+            // Fazer login no form
             document.getElementById('login-form').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 const email = document.getElementById('login-email').value;
                 const password = document.getElementById('login-password').value;
                 
-                // For demo purposes, accept any login
+                // Demo de login
                 currentUser = { id: 'demo-user', email: email };
-                showToast('Login realizado com sucesso!');
+                showToast('Login realizado com sucesso! 🎉');
                 closeModal('login-modal');
                 updateUserMenu();
             });
             
-            // formulario de registro
+            // Registrar o form
             document.getElementById('register-form').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
@@ -961,27 +1118,26 @@
                 const email = document.getElementById('register-email').value;
                 const password = document.getElementById('register-password').value;
                 
-                const result = await makeRequest('/users', {
+                const result = await makeRequest('/api/users', {
                     method: 'POST',
                     body: JSON.stringify({ username, email, password })
                 });
                 
                 if (result.success) {
-                    showToast('Conta criada com sucesso!');
+                    showToast('Conta criada com sucesso! 🎊');
                     closeModal('register-modal');
-                    
                     currentUser = { id: result.data.user_id, email: email };
                     updateUserMenu();
                 } else {
-                    showToast('Erro ao criar conta. Tente novamente.', 'error');
+                    showToast('Erro ao criar conta', 'error');
                 }
             });
         }
 
         function resetMoodForm() {
             document.getElementById('mood-form').reset();
-            document.querySelectorAll('.emoji-option').forEach(option => {
-                option.classList.remove('selected');
+            document.querySelectorAll('.mood-item').forEach(item => {
+                item.classList.remove('selected');
             });
             selectedEmoji = '';
             selectedMoodName = '';
@@ -991,7 +1147,7 @@
             const userMenu = document.querySelector('.user-menu');
             if (currentUser) {
                 userMenu.innerHTML = `
-                    <span>Olá, ${currentUser.email}</span>
+                    <span style="margin-right: 1rem;">👤 ${currentUser.email}</span>
                     <button class="btn secondary" onclick="logout()">
                         <i class="fas fa-sign-out-alt"></i> Sair
                     </button>
@@ -1004,7 +1160,7 @@
             location.reload();
         }
 
-        
+        // Uso do Toast
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -1015,25 +1171,21 @@
             }, 3000);
         }
 
-        // funcionalidades de procurar musica
-        document.getElementById('song-search').addEventListener('input', function(e) {
-            const query = e.target.value.toLowerCase();
-            const select = document.getElementById('song-select');
-            
-            
-            const filteredSongs = songs.filter(song => 
-                song.title.toLowerCase().includes(query) || 
-                song.artist.toLowerCase().includes(query)
-            );
-            
-            select.innerHTML = '<option value="">Selecione uma música</option>';
-            filteredSongs.forEach(song => {
-                const option = document.createElement('option');
-                option.value = song._id;
-                option.textContent = `${song.title} - ${song.artist}`;
-                select.appendChild(option);
-            });
-        });
+        // Inicializar demo data
+        setTimeout(() => {
+            const demoSongs = [
+                { _id: '1', title: 'Happy', artist: 'Pharrell Williams' },
+                { _id: '2', title: 'Mad World', artist: 'Gary Jules' },
+                { _id: '3', title: 'Pump It', artist: 'The Black Eyed Peas' },
+                { _id: '4', title: 'Someone Like You', artist: 'Adele' },
+                { _id: '5', title: 'Viva La Vida', artist: 'Coldplay' },
+                { _id: '6', title: 'Stressed Out', artist: 'Twenty One Pilots' },
+                { _id: '7', title: 'Good Vibes', artist: 'Chris Janson' },
+                { _id: '8', title: 'Thinking Out Loud', artist: 'Ed Sheeran' }
+            ];
+            songs = demoSongs;
+            updateSongSelect();
+        }, 1000);
     </script>
 </body>
 </html>
