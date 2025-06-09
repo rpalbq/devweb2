@@ -921,28 +921,35 @@
             document.getElementById('selected-mood-name').value = moodName;
         }
 
-        // Funções API
         async function makeRequest(url, options = {}) {
             try {
                 const response = await fetch(API_BASE + url, {
                     headers: {
-                        'Content-Type': 'application/json',
-                        ...options.headers
+                        'Content-Type': 'application/json'
                     },
-                    ...options
+                    method: options.method || 'GET',
+                    body: options.body
                 });
+                
                 const data = await response.json();
-                return { success: response.ok, data, status: response.status };
+                
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+                
+                return data;
+                
             } catch (error) {
-                return { success: false, error: error.message };
+                console.error('Erro na requisição:', error);
+                throw error;
             }
         }
 
         // Carregar sons
         async function loadSongs() {
-            const result = await makeRequest('/api/songs');
-            if (result.success && result.data) {
-                songs = result.data;
+            const result = await makeRequest('/songs');
+            if (result.songs) {
+                songs = result.songs;
                 updateSongSelect();
             }
         }
@@ -960,16 +967,30 @@
             });
         }
 
-        // Carregar stats
+        
         async function loadQuickStats() {
-            // Dados simulados para o modo demo
-            document.getElementById('total-moods').textContent = '42';
-            document.getElementById('total-songs').textContent = '28';
-            document.getElementById('current-streak').textContent = '7';
-            document.getElementById('favorite-mood').textContent = '😊';
+            if (currentUser) {
+                const statsResult = await makeRequest(`/stats/user/${currentUser.id}`);
+                const songsResult = await makeRequest('/songs');
+                
+                if (statsResult && !statsResult.error) {
+                    document.getElementById('total-moods').textContent = statsResult.total_entries_all_time || '0';
+                    document.getElementById('favorite-mood').textContent = statsResult.most_common_mood || '😊';
+                }
+                
+                if (songsResult && songsResult.songs) {
+                    document.getElementById('total-songs').textContent = songsResult.songs.length;
+                }
+                
+                document.getElementById('current-streak').textContent = '0';
+            } else {
+                // Se não estiver logado, mostrar zeros
+                document.getElementById('total-moods').textContent = '0';
+                document.getElementById('total-songs').textContent = '0';
+                document.getElementById('current-streak').textContent = '0';
+                document.getElementById('favorite-mood').textContent = '😊';
+            }
         }
-
-        // Carregar historico dos emojis
         async function loadMoodHistory() {
             if (!currentUser) {
                 document.getElementById('mood-history').innerHTML = `
@@ -981,15 +1002,24 @@
                 return;
             }
             
-            // emoji simulados para modo demo
-            const mockHistory = [
-                { emoji: '😊', mood: 'Feliz', song: 'Happy - Pharrell Williams', date: '2025-06-08', comment: 'Dia incrível!' },
-                { emoji: '🤔', mood: 'Pensativo', song: 'Mad World - Gary Jules', date: '2025-06-07', comment: 'Reflexões sobre a vida...' },
-                { emoji: '🥳', mood: 'Animado', song: 'Pump It - The Black Eyed Peas', date: '2025-06-06', comment: 'Festa com os amigos!' }
-            ];
             
-            displayMoodHistory(mockHistory);
-        }
+            const result = await makeRequest(`/moods/user/${currentUser.id}?detailed=true&limit=10`);
+        
+            if (result && result.moods) {
+                
+                const formattedHistory = result.moods.map(mood => ({
+                    emoji: mood.emoji,
+                    mood: mood.emoji, // Usar emoji como mood
+                    song: mood.song ? `${mood.song.title} - ${mood.song.artist}` : 'Música não encontrada',
+                    date: new Date(mood.created_at).toLocaleDateString('pt-BR'),
+                    comment: mood.comment || 'Sem comentário'
+                }));
+                
+                displayMoodHistory(formattedHistory);
+            } else {
+                displayMoodHistory([]); // Lista vazia se não há dados
+            }
+}
 
         function displayMoodHistory(moods) {
             const container = document.getElementById('mood-history');
@@ -1119,15 +1149,36 @@
                     currentUser = { id: 'demo-user' };
                 }
                 
-                const result = await makeRequest('/api/moods', {
+                let finalSongId = songId;
+                if (songId === 'custom') {
+                    const songData = customSong.value.split(' - ');
+                    const newSongResult = await makeRequest('/songs', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            title: songData[0] || customSong.value,
+                            artist: songData[1] || 'Artista Desconhecido',
+                            spotify_url: 'custom-song',
+                            genres: []
+                        })
+                    });
+                    
+                    if (newSongResult.success) {
+                        finalSongId = newSongResult.song_id;
+                    } else {
+                        showToast('Erro ao criar música', 'error');
+                        return;
+                    }
+                }
+
+                const result = await makeRequest('/moods', {
                     method: 'POST',
                     body: JSON.stringify({
                         user_id: currentUser.id,
-                        song_id: songId,
                         emoji: selectedEmoji,
-                        mood: selectedMoodName,
+                        song_id: finalSongId,
                         comment: comment
                     })
+            
                 });
                 
                 if (result.success) {
@@ -1147,10 +1198,27 @@
                 const password = document.getElementById('login-password').value;
                 
                 // Demo de login
-                currentUser = { id: 'demo-user', email: email };
-                showToast('Login realizado com sucesso! 🎉');
-                closeModal('login-modal');
-                updateUserMenu();
+                   const result = await makeRequest('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                    });
+                
+                    if (result.success) {
+                        currentUser = { 
+                            id: result.user._id, 
+                            email: result.user.email,
+                            username: result.user.username 
+                    };
+                    showToast('Login realizado com sucesso! 🎉');
+                    closeModal('login-modal');
+                    updateUserMenu();
+                    loadQuickStats(); // Recarregar stats com dados reais
+                } else {
+                    showToast(result.error || 'Erro no login', 'error');
+                }
             });
             
             // Registrar o form
@@ -1161,7 +1229,7 @@
                 const email = document.getElementById('register-email').value;
                 const password = document.getElementById('register-password').value;
                 
-                const result = await makeRequest('/api/users', {
+                const result = await makeRequest('/users', {
                     method: 'POST',
                     body: JSON.stringify({ username, email, password })
                 });
