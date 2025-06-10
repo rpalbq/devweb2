@@ -480,8 +480,6 @@
             font-style: italic;
         }
         
-        
-        
         /* Toast */
         .toast {
             position: fixed;
@@ -727,7 +725,7 @@
                             <option value="custom">Adicionar outra música ✏️</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group" id="custom-song-group" style="display: none;">
                         <label for="custom-song">Digite o nome da música:</label>
                         <input type="text" id="custom-song" class="form-control" placeholder="Nome da música - Artista">
@@ -831,23 +829,97 @@
 
     <script>
         // API Configuration
-        const API_BASE = 'http://localhost:5000';
+        const API_BASE = 'http://localhost:8080';
         
         // State
         let currentUser = null;
+        let isLoggedIn = false;
         let songs = [];
         let selectedEmoji = '';
         let selectedMoodName = '';
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Página carregada!');
+            testarAPI();
+            
             loadSongs();
             loadQuickStats();
             setupFormHandlers();
-            
-            // Adição de animação em particulas
             animateParticles();
         });
+
+        // FUNÇÃO PARA TESTAR API
+        function testarAPI() {
+            console.log('🧪 Testando conexão com API...');
+            
+            fetch(API_BASE + '/test-db')
+                .then(response => {
+                    console.log('📡 Status da API:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('✅ API funcionando:', data);
+                    showToast('API conectada!', 'success');
+                })
+                .catch(error => {
+                    console.error('❌ API não responde:', error);
+                    showToast('Erro: Verifique se a API está rodando na porta 8080', 'error');
+                });
+        }
+
+        // FUNÇÃO PARA CRIAR USUÁRIO DEMO AUTOMATICAMENTE
+        async function criarUsuarioDemo() {
+    console.log('👤 Criando usuário demo...');
+    
+    try {
+        // Tentar criar usuário demo
+        const result = await makeRequest('/users', {
+            method: 'POST',
+            body: JSON.stringify({
+                username: 'demo_user',
+                email: 'demo@moodtracker.com',
+                password: 'demo123'
+            })
+        });
+        
+        if (result.success) {
+            console.log('✅ Usuário demo criado:', result.user_id);
+            currentUser = { id: result.user_id, isDemo: true }; // MARCADO COMO DEMO
+            showToast('Usuário demo criado!', 'success');
+            return result.user_id;
+        }
+        
+    } catch (error) {
+        console.log('⚠️ Usuário demo já existe, tentando fazer login...');
+        
+        // Se der erro (usuário já existe), tentar fazer login
+        try {
+            const loginResult = await makeRequest('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({
+                    email: 'demo@moodtracker.com',
+                    password: 'demo123'
+                })
+            });
+            
+            if (loginResult.success) {
+                console.log('✅ Login demo realizado:', loginResult.user._id);
+                currentUser = { id: loginResult.user._id, isDemo: true }; // MARCADO COMO DEMO
+                showToast('Login demo realizado!', 'success');
+                return loginResult.user._id;
+            }
+            
+        } catch (loginError) {
+            console.log('❌ Erro no login demo:', loginError);
+            // Se tudo falhar, usar ID fixo
+            currentUser = { id: 'demo-user-123', isDemo: true }; // MARCADO COMO DEMO
+            showToast('Modo demo offline ativado', 'success');
+            return 'demo-user-123';
+        }
+    }
+}
+          
 
         function animateParticles() {
             const particles = document.querySelectorAll('.particle');
@@ -856,14 +928,12 @@
             });
         }
         
-        // adicao de nova musica 
         function toggleCustomSong() {
             const select = document.getElementById('song-select');
             const customGroup = document.getElementById('custom-song-group');
              
             if (select.value === 'custom') {
                 customGroup.style.display = 'block';
-                
                 setTimeout(() => {
                     document.getElementById('custom-song').focus();
                 }, 100);
@@ -872,27 +942,32 @@
                 document.getElementById('custom-song').value = '';
             }
         }
-            
 
         // Navigation
-        function showSection(sectionName) {
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            document.getElementById(sectionName).classList.add('active');
-            
-            // Load section-specific data
-            switch(sectionName) {
-                case 'history':
-                    loadMoodHistory();
-                    break;
-                case 'stats':
-                    loadDetailedStats();
-                    break;
+      function showSection(sectionName) {
+    // APENAS navegar - SEM abrir modal automaticamente
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    document.getElementById(sectionName).classList.add('active');
+    
+    // Carregar conteúdo das seções
+    switch(sectionName) {
+        case 'history':
+            loadMoodHistory();  // Vai mostrar cadeado se não tiver login
+            break;
+        case 'stats':
+            loadDetailedStats(); // Vai mostrar cadeado se não tiver login
+            break;
+        case 'track':
+            // Registrar funciona para todos
+            if (!currentUser) {
+                showToast('Modo demonstração ativo!', 'success');
             }
-        }
-
+            break;
+    }
+}
         // Funções modal
         function openModal(modalId) {
             document.getElementById(modalId).classList.add('active');
@@ -909,6 +984,8 @@
 
         // Seleção de emoji
         function selectMood(emoji, moodName) {
+            console.log('🎭 selectMood chamada:', emoji, moodName);
+            
             document.querySelectorAll('.mood-item').forEach(item => {
                 item.classList.remove('selected');
             });
@@ -919,10 +996,17 @@
             selectedMoodName = moodName;
             document.getElementById('selected-emoji').value = emoji;
             document.getElementById('selected-mood-name').value = moodName;
+            
+            console.log('✅ Emoji selecionado:', selectedEmoji);
+            showToast(`Humor ${moodName} selecionado!`, 'success');
         }
 
+        // Função makeRequest com debug
         async function makeRequest(url, options = {}) {
             try {
+                console.log('🔄 Fazendo requisição para:', API_BASE + url);
+                console.log('📦 Dados enviados:', options.body);
+                
                 const response = await fetch(API_BASE + url, {
                     headers: {
                         'Content-Type': 'application/json'
@@ -931,7 +1015,10 @@
                     body: options.body
                 });
                 
+                console.log('📡 Resposta HTTP:', response.status, response.statusText);
+                
                 const data = await response.json();
+                console.log('📄 Dados recebidos:', data);
                 
                 if (!response.ok) {
                     throw new Error(data.error || `HTTP ${response.status}`);
@@ -940,17 +1027,33 @@
                 return data;
                 
             } catch (error) {
-                console.error('Erro na requisição:', error);
+                console.error('❌ Erro na requisição:', error);
+                showToast(`Erro: ${error.message}`, 'error');
                 throw error;
             }
         }
 
-        // Carregar sons
+        // Carregar songs
         async function loadSongs() {
-            const result = await makeRequest('/songs');
-            if (result.songs) {
-                songs = result.songs;
-                updateSongSelect();
+            try {
+                const result = await makeRequest('/songs');
+                if (result.songs) {
+                    songs = result.songs;
+                    updateSongSelect();
+                }
+            } catch (error) {
+                console.log('Usando músicas demo');
+                setTimeout(() => {
+                    const demoSongs = [
+                        { _id: '1', title: 'Happy', artist: 'Pharrell Williams' },
+                        { _id: '2', title: 'Mad World', artist: 'Gary Jules' },
+                        { _id: '3', title: 'Pump It', artist: 'The Black Eyed Peas' },
+                        { _id: '4', title: 'Someone Like You', artist: 'Adele' },
+                        { _id: '5', title: 'Viva La Vida', artist: 'Coldplay' }
+                    ];
+                    songs = demoSongs;
+                    updateSongSelect();
+                }, 1000);
             }
         }
 
@@ -967,283 +1070,400 @@
             });
         }
 
-        
         async function loadQuickStats() {
-            if (currentUser) {
-                const statsResult = await makeRequest(`/stats/user/${currentUser.id}`);
-                const songsResult = await makeRequest('/songs');
-                
-                if (statsResult && !statsResult.error) {
-                    document.getElementById('total-moods').textContent = statsResult.total_entries_all_time || '0';
-                    document.getElementById('favorite-mood').textContent = statsResult.most_common_mood || '😊';
-                }
-                
-                if (songsResult && songsResult.songs) {
-                    document.getElementById('total-songs').textContent = songsResult.songs.length;
-                }
-                
-                document.getElementById('current-streak').textContent = '0';
-            } else {
-                // Se não estiver logado, mostrar zeros
-                document.getElementById('total-moods').textContent = '0';
-                document.getElementById('total-songs').textContent = '0';
-                document.getElementById('current-streak').textContent = '0';
-                document.getElementById('favorite-mood').textContent = '😊';
+    try {
+        if (currentUser && currentUser.id !== 'demo-user-123') {
+            // Carregar stats do usuário logado
+            const statsResult = await makeRequest(`/stats/user/${currentUser.id}`);
+            const songsResult = await makeRequest('/songs');
+            
+            if (statsResult && !statsResult.error) {
+                document.getElementById('total-moods').textContent = statsResult.total_entries_all_time || '0';
+                document.getElementById('favorite-mood').textContent = statsResult.most_common_mood || '😊';
             }
+            
+            if (songsResult && songsResult.songs) {
+                document.getElementById('total-songs').textContent = songsResult.songs.length;
+            }
+            
+            document.getElementById('current-streak').textContent = '0';
+        } else {
+            // Stats básicos para usuário demo
+            document.getElementById('total-moods').textContent = '0';
+            document.getElementById('total-songs').textContent = songs.length || '5';
+            document.getElementById('current-streak').textContent = '0';
+            document.getElementById('favorite-mood').textContent = '😊';
         }
-        async function loadMoodHistory() {
-            if (!currentUser) {
-                document.getElementById('mood-history').innerHTML = `
-                    <div style="text-align: center; padding: 3rem;">
-                        <i class="fas fa-lock" style="font-size: 3rem; color: var(--gray); margin-bottom: 1rem;"></i>
-                        <p>Faça login para ver seu histórico</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            
-            const result = await makeRequest(`/moods/user/${currentUser.id}?detailed=true&limit=10`);
-        
-            if (result && result.moods) {
-                
-                const formattedHistory = result.moods.map(mood => ({
-                    emoji: mood.emoji,
-                    mood: mood.emoji, // Usar emoji como mood
-                    song: mood.song ? `${mood.song.title} - ${mood.song.artist}` : 'Música não encontrada',
-                    date: new Date(mood.created_at).toLocaleDateString('pt-BR'),
-                    comment: mood.comment || 'Sem comentário'
-                }));
-                
-                displayMoodHistory(formattedHistory);
-            } else {
-                displayMoodHistory([]); // Lista vazia se não há dados
-            }
+    } catch (error) {
+        console.log('Erro ao carregar stats:', error);
+        // Fallback
+        document.getElementById('total-moods').textContent = '0';
+        document.getElementById('total-songs').textContent = '5';
+        document.getElementById('current-streak').textContent = '0';
+        document.getElementById('favorite-mood').textContent = '😊';
+    }
 }
 
-        function displayMoodHistory(moods) {
-            const container = document.getElementById('mood-history');
-            
-            if (moods.length === 0) {
-                container.innerHTML = '<p>Nenhum humor registrado ainda.</p>';
-                return;
-            }
-            
-            container.innerHTML = moods.map(mood => `
-                <div class="card" style="margin-bottom: 1rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <div style="display: flex; gap: 1rem;">
-                            <span style="font-size: 3rem;">${mood.emoji}</span>
-                            <div>
-                                <h4>${mood.mood}</h4>
-                                <p style="color: var(--primary); margin: 0.5rem 0;">${mood.song}</p>
-                                <p style="color: var(--gray); font-style: italic;">"${mood.comment}"</p>
-                            </div>
-                        </div>
-                        <span style="color: var(--gray); font-size: 0.875rem;">${mood.date}</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Stats detalhados
-        async function loadDetailedStats() {
-            const container = document.getElementById('detailed-stats');
-            
-            // stats simulados
+      async function loadMoodHistory() {
+    const container = document.getElementById('mood-history');
+    
+    // CONDIÇÃO CORRIGIDA: bloquear se não estiver logado OU se for usuário demo
+    if (!isLoggedIn || !currentUser || currentUser.isDemo) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 3rem;">
+                <i class="fas fa-lock" style="font-size: 3rem; color: var(--gray); margin-bottom: 1rem;"></i>
+                <p>Faça login para ver seu histórico</p>
+                <button class="btn" onclick="openModal('login-modal')" style="margin-top: 1rem;">
+                    <i class="fas fa-sign-in-alt"></i> Fazer Login
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    // Usuário logado - mostrar dados reais
+    try {
+        const result = await makeRequest(`/moods/user/${currentUser.id}?detailed=true&limit=10`);
+        
+        if (result && result.moods && result.moods.length > 0) {
             container.innerHTML = `
+                <div style="margin-bottom: 2rem;">
+                    <h3>Seu Histórico</h3>
+                    <p style="color: var(--gray);">Últimos registros</p>
+                </div>
+                
+                ${result.moods.map(mood => `
+                    <div class="card" style="margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="display: flex; gap: 1rem;">
+                                <span style="font-size: 3rem;">${mood.emoji}</span>
+                                <div>
+                                    <h4>${getMoodName(mood.emoji)}</h4>
+                                    <p style="color: var(--primary); margin: 0.5rem 0;">
+                                        ${mood.song ? `${mood.song.title} - ${mood.song.artist}` : 'Música não encontrada'}
+                                    </p>
+                                    ${mood.comment ? `<p style="color: var(--gray); font-style: italic;">"${mood.comment}"</p>` : ''}
+                                </div>
+                            </div>
+                            <span style="color: var(--gray); font-size: 0.875rem;">
+                                ${new Date(mood.created_at).toLocaleDateString('pt-BR')}
+                            </span>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        } else {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-book-open" style="font-size: 3rem; color: var(--secondary); margin-bottom: 1rem;"></i>
+                    <h3>Histórico Vazio</h3>
+                    <p style="color: var(--gray);">Registre seu primeiro humor!</p>
+                    <button class="btn" onclick="showSection('track')">
+                        <i class="fas fa-plus"></i> Começar
+                    </button>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
+        container.innerHTML = `
+            <div class="card">
+                <h3>Erro ao carregar</h3>
+                <p>Verifique sua conexão.</p>
+            </div>
+        `;
+    }
+}
+
+     async function loadDetailedStats() {
+    const container = document.getElementById('detailed-stats');
+    
+    // CONDIÇÃO CORRIGIDA: bloquear se não estiver logado OU se for usuário demo
+    if (!isLoggedIn || !currentUser || currentUser.isDemo) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 3rem;">
+                <i class="fas fa-lock" style="font-size: 3rem; color: var(--gray); margin-bottom: 1rem;"></i>
+                <p>Faça login para ver suas estatísticas</p>
+                <button class="btn" onclick="openModal('login-modal')" style="margin-top: 1rem;">
+                    <i class="fas fa-sign-in-alt"></i> Fazer Login
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    // Usuário logado - mostrar dados reais
+    try {
+        const stats = await makeRequest(`/stats/user/${currentUser.id}?days=30`);
+        
+        if (stats && !stats.error && stats.total_entries_all_time > 0) {
+            const moodDistribution = stats.mood_distribution || [];
+            const totalEntries = stats.total_entries_period || 0;
+            
+            container.innerHTML = `
+                <div style="margin-bottom: 2rem;">
+                    <h3>Suas Estatísticas</h3>
+                    <p style="color: var(--gray);">Últimos 30 dias</p>
+                </div>
+                
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-number">😊</div>
+                        <div class="stat-number">${stats.most_common_mood || '😊'}</div>
                         <div class="stat-label">Humor mais frequente</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">Rock</div>
-                        <div class="stat-label">Gênero mais ouvido</div>
+                        <div class="stat-number">${totalEntries}</div>
+                        <div class="stat-label">Registros este mês</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">18:00</div>
-                        <div class="stat-label">Horário mais ativo</div>
+                        <div class="stat-number">${stats.total_entries_all_time}</div>
+                        <div class="stat-label">Total geral</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">85%</div>
-                        <div class="stat-label">Dias positivos</div>
+                        <div class="stat-number">📈</div>
+                        <div class="stat-label">Progresso</div>
                     </div>
                 </div>
                 
                 <div class="card" style="margin-top: 2rem;">
                     <h3>Distribuição de Humores</h3>
-                    <div style="display: grid; gap: 1rem; margin-top: 1rem;">
-                        <div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <span>😊 Feliz</span>
-                                <span>45%</span>
-                            </div>
-                            <div style="background: var(--dark); height: 10px; border-radius: 5px; overflow: hidden;">
-                                <div style="background: var(--primary); height: 100%; width: 45%;"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <span>🤔 Pensativo</span>
-                                <span>25%</span>
-                            </div>
-                            <div style="background: var(--dark); height: 10px; border-radius: 5px; overflow: hidden;">
-                                <div style="background: var(--secondary); height: 100%; width: 25%;"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <span>😴 Cansado</span>
-                                <span>20%</span>
-                            </div>
-                            <div style="background: var(--dark); height: 10px; border-radius: 5px; overflow: hidden;">
-                                <div style="background: var(--accent); height: 100%; width: 20%;"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <span>🥳 Animado</span>
-                                <span>10%</span>
-                            </div>
-                            <div style="background: var(--dark); height: 10px; border-radius: 5px; overflow: hidden;">
-                                <div style="background: var(--success); height: 100%; width: 10%;"></div>
-                            </div>
-                        </div>
+                    <div style="margin-top: 1rem;">
+                        ${moodDistribution.map(mood => {
+                            const percentage = Math.round((mood.count / totalEntries) * 100);
+                            return `
+                                <div style="margin-bottom: 1rem;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <span>${mood._id} ${getMoodName(mood._id)}</span>
+                                        <span>${percentage}%</span>
+                                    </div>
+                                    <div style="background: var(--dark); height: 8px; border-radius: 4px;">
+                                        <div style="background: var(--primary); height: 100%; width: ${percentage}%; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             `;
+        } else {
+            // Usuário logado mas sem dados
+            container.innerHTML = `
+                <div style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                    <h3>Bem-vindo!</h3>
+                    <p style="color: var(--gray);">Registre alguns humores para ver suas estatísticas.</p>
+                    <button class="btn" onclick="showSection('track')">
+                        <i class="fas fa-plus"></i> Registrar Humor
+                    </button>
+                </div>
+            `;
         }
+        
+    } catch (error) {
+        console.log('Erro ao carregar stats:', error);
+        container.innerHTML = `
+            <div class="card">
+                <h3>Erro ao carregar</h3>
+                <p>Tente novamente.</p>
+            </div>
+        `;
+    }
+}
 
-        // Form Handlers
+// Comentarios que ajudam na quantidade de emojis registrados
+
+
+function generateWellnessInsight(stats) {
+    const total = stats.total_entries_period || 0;
+    const distribution = stats.mood_distribution || [];
+    
+    if (total === 0) return "Registre mais humores para receber insights personalizados.";
+    
+    const positiveEmojis = ['😊', '🥳', '😍'];
+    const positiveCount = distribution
+        .filter(mood => positiveEmojis.includes(mood._id))
+        .reduce((sum, mood) => sum + mood.count, 0);
+    
+    const positivePercentage = Math.round((positiveCount / total) * 100);
+    
+    if (positivePercentage >= 70) {
+        return `<span style="color: var(--success);"><i class="fas fa-smile"></i> Excelente! ${positivePercentage}% dos seus registros são positivos. Continue assim!</span>`;
+    } else if (positivePercentage >= 50) {
+        return `<span style="color: var(--accent);"><i class="fas fa-meh"></i> Bom progresso! ${positivePercentage}% positivos. Que tal tentar atividades que trazem alegria?</span>`;
+    } else {
+        return `<span style="color: var(--secondary);"><i class="fas fa-heart"></i> Nota-se uma fase desafiadora. Considere conversar com alguém de confiança.</span>`;
+    }
+}
+
+
+
+        // FUNÇÃO PRINCIPAL: Form Handlers COM CORREÇÃO DO USUÁRIO DEMO
         function setupFormHandlers() {
-            // Emoji Form
-            document.getElementById('mood-form').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                if (!selectedEmoji) {
-                    showToast('Por favor, selecione um humor', 'error');
-                    return;
-                }
-                
-                const songSelect = document.getElementById('song-select');
-                const customSong = document.getElementById('custom-song');
-                const songId = songSelect.value;
-                const comment = document.getElementById('mood-comment').value;
-
-                if (!songId || (songId === 'custom' && !customSong.value.trim())) {
-                    showToast('Por favor, selecione ou digite uma música', 'error');
-                    return;
-                }
-                
-                let songName;
-                if (songId === 'custom') {
-                    songName = customSong.value.trim();
-                
-                } else {
-                    songName = songSelect.options[songSelect.selectedIndex].text;
-                }
-                
-                // Modo Demo 
-                if (!currentUser) {
-                    currentUser = { id: 'demo-user' };
-                }
-                
-                let finalSongId = songId;
-                if (songId === 'custom') {
-                    const songData = customSong.value.split(' - ');
-                    const newSongResult = await makeRequest('/songs', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            title: songData[0] || customSong.value,
-                            artist: songData[1] || 'Artista Desconhecido',
-                            spotify_url: 'custom-song',
-                            genres: []
-                        })
-                    });
+            console.log('📝 Configurando form handlers...');
+            
+            const formulario = document.getElementById('mood-form');
+            if (formulario) {
+                formulario.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    console.log('📝 Formulário enviado!');
                     
-                    if (newSongResult.success) {
-                        finalSongId = newSongResult.song_id;
-                    } else {
-                        showToast('Erro ao criar música', 'error');
+                    if (!selectedEmoji) {
+                        console.log('❌ Nenhum emoji selecionado');
+                        showToast('Por favor, selecione um humor', 'error');
                         return;
                     }
-                }
+                    
+                    const songSelect = document.getElementById('song-select');
+                    const customSong = document.getElementById('custom-song');
+                    const songId = songSelect.value;
+                    const comment = document.getElementById('mood-comment').value;
 
-                const result = await makeRequest('/moods', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        user_id: currentUser.id,
-                        emoji: selectedEmoji,
-                        song_id: finalSongId,
-                        comment: comment
-                    })
-            
+                    if (!songId || (songId === 'custom' && !customSong.value.trim())) {
+                        console.log('❌ Nenhuma música selecionada');
+                        showToast('Por favor, selecione ou digite uma música', 'error');
+                        return;
+                    }
+                    
+                    // GARANTIR USUÁRIO DEMO EXISTE ANTES DE SALVAR
+                    if (!currentUser) {
+                        console.log('🔄 Criando usuário demo...');
+                        showToast('Criando usuário demo...', 'success');
+                        await criarUsuarioDemo();
+                    }
+                    
+                    try {
+                        let finalSongId = songId;
+                        
+                        // Se for música customizada, criar primeiro
+                        if (songId === 'custom') {
+                            console.log('🎵 Criando música customizada:', customSong.value);
+                            
+                            const songData = customSong.value.split(' - ');
+                            const newSongResult = await makeRequest('/songs', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                    title: songData[0] || customSong.value,
+                                    artist: songData[1] || 'Artista Desconhecido',
+                                    spotify_url: 'custom-song',
+                                    genres: []
+                                })
+                            });
+                            
+                            if (newSongResult.success) {
+                                finalSongId = newSongResult.song_id;
+                                console.log('✅ Música criada com ID:', finalSongId);
+                            } else {
+                                console.log('❌ Erro ao criar música:', newSongResult);
+                                showToast('Erro ao criar música', 'error');
+                                return;
+                            }
+                        }
+
+                        // Criar entrada de mood
+                        console.log('😊 Criando entrada de mood para usuário:', currentUser.id);
+                        const moodData = {
+                            user_id: currentUser.id,
+                            emoji: selectedEmoji,
+                            song_id: finalSongId,
+                            comment: comment
+                        };
+                        
+                        console.log('📦 Dados do mood:', moodData);
+                        
+                        const result = await makeRequest('/moods', {
+                            method: 'POST',
+                            body: JSON.stringify(moodData)
+                        });
+                        
+                        if (result.success) {
+                            console.log('✅ Mood salvo com sucesso!');
+                            showToast('Humor registrado com sucesso! ✨');
+                            resetMoodForm();
+                            loadQuickStats();
+                        } else {
+                            console.log('❌ Erro ao salvar mood:', result);
+                            showToast('Erro ao registrar humor', 'error');
+                        }
+                        
+                    } catch (error) {
+                        console.error('💥 Erro geral:', error);
+                        showToast(`Erro: ${error.message}`, 'error');
+                    }
                 });
                 
-                if (result.success) {
-                    showToast('Humor registrado com sucesso! ✨');
-                    resetMoodForm();
-                    loadQuickStats();
-                } else {
-                    showToast('Erro ao registrar humor', 'error');
-                }
+                console.log('✅ Handler do formulário configurado');
+            }
+
+            // Handlers para login e registro
+          document.getElementById('login-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        
+        try {
+            const result = await makeRequest('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
             });
             
-            // Fazer login no form
-            document.getElementById('login-form').addEventListener('submit', async function(e) {
-                e.preventDefault();
+            if (result.success) {
+                // USUÁRIO REAL LOGADO - não é demo
+                currentUser = { 
+                    id: result.user._id, 
+                    email: result.user.email,
+                    username: result.user.username,
+                    isDemo: false // USUÁRIO REAL
+                };
+                isLoggedIn = true; // MARCAR COMO LOGADO
                 
-                const email = document.getElementById('login-email').value;
-                const password = document.getElementById('login-password').value;
-                
-                // Demo de login
-                   const result = await makeRequest('/auth/login', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        email: email,
-                        password: password
-                    })
-                    });
-                
-                    if (result.success) {
-                        currentUser = { 
-                            id: result.user._id, 
-                            email: result.user.email,
-                            username: result.user.username 
-                    };
-                    showToast('Login realizado com sucesso! 🎉');
-                    closeModal('login-modal');
-                    updateUserMenu();
-                    loadQuickStats(); // Recarregar stats com dados reais
-                } else {
-                    showToast(result.error || 'Erro no login', 'error');
-                }
-            });
-            
-            // Registrar o form
-            document.getElementById('register-form').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const username = document.getElementById('register-username').value;
-                const email = document.getElementById('register-email').value;
-                const password = document.getElementById('register-password').value;
-                
-                const result = await makeRequest('/users', {
-                    method: 'POST',
-                    body: JSON.stringify({ username, email, password })
-                });
-                
-                if (result.success) {
-                    showToast('Conta criada com sucesso! 🎊');
-                    closeModal('register-modal');
-                    currentUser = { id: result.data.user_id, email: email };
-                    updateUserMenu();
-                } else {
-                    showToast('Erro ao criar conta', 'error');
-                }
-            });
+                showToast('Login realizado com sucesso! 🎉');
+                closeModal('login-modal');
+                updateUserMenu();
+                loadQuickStats();
+            } else {
+                showToast(result.error || 'Erro no login', 'error');
+            }
+        } catch (error) {
+            showToast('Erro no login', 'error');
         }
+    });
+
+
+
+            document.getElementById('register-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('register-username').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        
+        try {
+            const result = await makeRequest('/users', {
+                method: 'POST',
+                body: JSON.stringify({ username, email, password })
+            });
+            
+            if (result.success) {
+                showToast('Conta criada com sucesso! 🎊');
+                closeModal('register-modal');
+                
+                // USUÁRIO REAL CRIADO - não é demo
+                currentUser = { 
+                    id: result.user_id,
+                    isDemo: false // USUÁRIO REAL
+                };
+                isLoggedIn = true; // MARCAR COMO LOGADO
+                
+                updateUserMenu();
+            } else {
+                showToast('Erro ao criar conta', 'error');
+            }
+        } catch (error) {
+            showToast('Erro ao criar conta', 'error');
+        }
+    });
+}
 
         function resetMoodForm() {
             document.getElementById('mood-form').reset();
@@ -1255,24 +1475,31 @@
             document.getElementById('custom-song-group').style.display = 'none';
         }
 
-        function updateUserMenu() {
-            const userMenu = document.querySelector('.user-menu');
-            if (currentUser) {
-                userMenu.innerHTML = `
-                    <span style="margin-right: 1rem;">👤 ${currentUser.email}</span>
-                    <button class="btn secondary" onclick="logout()">
-                        <i class="fas fa-sign-out-alt"></i> Sair
-                    </button>
-                `;
-            }
-        }
+       function updateUserMenu() {
+    const userMenu = document.querySelector('.user-menu');
+    if (isLoggedIn && currentUser && !currentUser.isDemo) {
+        userMenu.innerHTML = `
+            <span style="margin-right: 1rem;">👤 ${currentUser.email || currentUser.username}</span>
+            <button class="btn secondary" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </button>
+        `;
+    } else {
+        userMenu.innerHTML = `
+            <button class="btn secondary" onclick="openModal('login-modal')">
+                <i class="fas fa-user"></i> Entrar
+            </button>
+        `;
+    }
+}
 
         function logout() {
-            currentUser = null;
-            location.reload();
-        }
+    currentUser = null;
+    isLoggedIn = false;
+    location.reload();
+}
 
-        // Uso do Toast
+        // Toast
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -1283,21 +1510,19 @@
             }, 3000);
         }
 
-        // Inicializar demo data
-        setTimeout(() => {
-            const demoSongs = [
-                { _id: '1', title: 'Happy', artist: 'Pharrell Williams' },
-                { _id: '2', title: 'Mad World', artist: 'Gary Jules' },
-                { _id: '3', title: 'Pump It', artist: 'The Black Eyed Peas' },
-                { _id: '4', title: 'Someone Like You', artist: 'Adele' },
-                { _id: '5', title: 'Viva La Vida', artist: 'Coldplay' },
-                { _id: '6', title: 'Stressed Out', artist: 'Twenty One Pilots' },
-                { _id: '7', title: 'Good Vibes', artist: 'Chris Janson' },
-                { _id: '8', title: 'Thinking Out Loud', artist: 'Ed Sheeran' }
-            ];
-            songs = demoSongs;
-            updateSongSelect();
-        }, 1000);
+       function getMoodName(emoji) {
+         const moodNames = {
+         '😊': 'Feliz',
+         '😢': 'Triste', 
+         '😡': 'Bravo',
+         '😰': 'Ansioso',
+         '😴': 'Cansado',
+         '🥳': 'Animado',
+         '😍': 'Apaixonado',
+         '🤔': 'Pensativo'
+       };
+        return moodNames[emoji] || '';
+    }
     </script>
 </body>
 </html>

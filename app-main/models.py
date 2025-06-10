@@ -362,3 +362,53 @@ def delete_mood_entry(entry_id: str) -> Dict[str, Any]:
             
     except Exception as e:
         return {"error": f"Erro ao deletar entrada: {str(e)}"}
+    
+
+def get_song(song_id: str) -> Optional[Dict[str, Any]]:
+    """Buscar música por ID"""
+    try:
+        song = db.songs.find_one({"_id": ObjectId(song_id)})
+        if song:
+            song["_id"] = str(song["_id"])
+        return song
+    except Exception as e:
+        print(f"Erro ao buscar música: {e}")
+        return None
+
+def list_songs(limit: int = 50) -> List[Dict[str, Any]]:
+    """Listar músicas"""
+    try:
+        songs = []
+        for song in db.songs.find().limit(limit):
+            song["_id"] = str(song["_id"])
+            songs.append(song)
+        return songs
+    except Exception as e:
+        print(f"Erro ao listar músicas: {e}")
+        return []
+
+def list_all_users() -> List[Dict[str, Any]]:
+    """Listar todos os usuários"""
+    try:
+        users = []
+        for user in db.users.find():
+            user["_id"] = str(user["_id"])
+            user.pop('password_hash', None)  # Remover senha por segurança
+            users.append(user)
+        return users
+    except Exception as e:
+        print(f"Erro ao listar usuários: {e}")
+        return []
+
+def get_mood_entry(mood_id: str) -> Optional[Dict[str, Any]]:
+    """Buscar entrada de mood por ID"""
+    try:
+        mood = db.mood_entries.find_one({"_id": ObjectId(mood_id)})
+        if mood:
+            mood["_id"] = str(mood["_id"])
+            mood["user_id"] = str(mood["user_id"])
+            mood["song_id"] = str(mood["song_id"])
+        return mood
+    except Exception as e:
+        print(f"Erro ao buscar mood: {e}")
+        return None
