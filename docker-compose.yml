@@ -13,6 +13,14 @@ services:
     volumes:
       - ./app-main:/app
 
+  mongo-express:
+    image: mongo-express
+    ports:
+      - "8082:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+    depends_on:
+      - mongo
   report-service:
     build: ./report-service
     container_name: report_service

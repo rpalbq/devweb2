@@ -2,22 +2,28 @@ from flask import Flask, jsonify, request, send_from_directory
 import os
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
+from bson import ObjectId
+import json
 
+# Intercepta e transforma objectID para string
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        return super().default(o)
 
 # Importar models
 import models
 
-#Flash utilizando a pasta templates
-
+# Criar app
 app = Flask(
     __name__,
     static_folder="templates",     
     template_folder="templates"    
 )
 
-
-
-app = Flask(__name__)
+# Ativação do jsonencoder
+app.json_encoder = JSONEncoder
 
 #Conexão MongoDB
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017")
@@ -43,23 +49,6 @@ except Exception as e:
 @app.route('/')
 def index():
     return send_from_directory('templates', 'index.html')
-
-
-
-@app.route('/')
-def home():
-    return jsonify({
-        "message": "🎵 API funcionando",
-        "service": "app-main",
-        "port": 5000,
-        "status": "OK",
-        "endpoints": {
-            "users": "/users",
-            "songs": "/songs", 
-            "moods": "/moods",
-            "test": "/test-db"
-        }
-    })
 
 @app.route('/test-db')
 def test_db():

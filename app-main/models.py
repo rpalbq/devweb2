@@ -434,7 +434,11 @@ def get_mood_entry(mood_id: str) -> Optional[Dict[str, Any]]:
         if mood:
             mood["_id"] = str(mood["_id"])
             mood["user_id"] = str(mood["user_id"])
-            mood["song_id"] = str(mood["song_id"])
+            # Só converter se não for None
+            if mood.get("song_id"):
+                mood["song_id"] = str(mood["song_id"])
+            else:
+                mood["song_id"] = None
         return mood
     except Exception as e:
         print(f"Erro ao buscar mood: {e}")
