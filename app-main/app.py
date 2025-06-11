@@ -288,7 +288,7 @@ def create_mood():
         if not data:
             return jsonify({"error": "JSON é obrigatório"}), 400
         
-        required_fields = ['user_id', 'emoji', 'song_id']
+        required_fields = ['user_id', 'emoji',]
         missing_fields = [field for field in required_fields if field not in data or not data[field]]
         
         if missing_fields:
@@ -299,7 +299,7 @@ def create_mood():
         result = models.create_mood_entry(
             user_id=data['user_id'],
             emoji=data['emoji'],
-            song_id=data['song_id'],
+            song_id=data.get('song_id'),
             comment=data.get('comment', '')
         )
         
@@ -335,7 +335,19 @@ def get_user_moods(user_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
         
-        
+        # rota pra limpar as músicas
+@app.route('/admin/clear-songs', methods=['DELETE'])
+def clear_songs():
+    """ROTA TEMPORÁRIA - Limpar todas as músicas"""
+    try:
+        result = db.songs.delete_many({})
+        return jsonify({
+            "success": True,
+            "deleted_count": result.deleted_count,
+            "message": f"Removidas {result.deleted_count} músicas"
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/moods/<mood_id>', methods=['GET'])
 def get_mood(mood_id):
@@ -403,23 +415,20 @@ def get_user_stats(user_id):
 
 @app.route('/auth/login', methods=['POST'])
 def login():
-    """Login do usuário"""
     try:
         data = request.get_json()
         
         if not data or not data.get('email') or not data.get('password'):
             return jsonify({"error": "Email e senha são obrigatórios"}), 400
         
-        # Buscar usuário
         user = models.get_user_by_email(data['email'])
         if not user:
             return jsonify({"error": "Credenciais inválidas"}), 401
         
-        # Verificar senha
         if not check_password_hash(user['password_hash'], data['password']):
             return jsonify({"error": "Credenciais inválidas"}), 401
         
-        # Remover senha da resposta
+        
         user.pop('password_hash', None)
         
         return jsonify({
@@ -430,7 +439,7 @@ def login():
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
+    
 # erros 
 
 @app.errorhandler(404)

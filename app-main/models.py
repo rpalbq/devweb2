@@ -16,6 +16,11 @@ def init_db(database_instance):
 def create_user(username: str, email: str, password_hash: str) -> Dict[str, Any]:
     """Criar usuário"""
     try:
+
+        existing = db.users.find_one({"email": email})
+        if existing:
+          return {"error": "E-mail já utilizado"}  
+
         # Criar usuário
         now = datetime.utcnow()
         result = db.users.insert_one({
@@ -92,7 +97,7 @@ def delete_user(user_id: str) -> Dict[str, Any]:
         return {"error": f"Erro ao deletar usuário: {str(e)}"}
 
 # Música
-def create_song(title: str, artist: str, spotify_url: str, genres: List[str] = None) -> Dict[str, Any]:
+def create_song(title: str, artist: str, spotify_url: str, user_id: str = None, genres: List[str] = None) -> Dict[str, Any]:
     """Criar música """
     try:
         # Validações
@@ -112,8 +117,9 @@ def create_song(title: str, artist: str, spotify_url: str, genres: List[str] = N
             "title": title,
             "artist": artist,
             "spotify_url": spotify_url,
+            "user_id": ObjectId(user_id) if user_id else None,  # responsavel por ter mood registrado privado
             "genres": genres or [],
-            "play_count": 0,  # Contador de reproduções
+            "play_count": 0, 
             "created_at": now,
             "updated_at": now
         }
@@ -183,39 +189,42 @@ def delete_song(song_id: str) -> Dict[str, Any]:
 
 # Entrada de humor
 
-def create_mood_entry(user_id: str, emoji: str, song_id: str, comment: str = "") -> Dict[str, Any]:
+def create_mood_entry(user_id: str, emoji: str, song_id: str = None, comment: str = "") -> Dict[str, Any]:
     """Criar entrada de humor"""
     try:
         # Validações
-        if not user_id or not emoji or not song_id:
-            return {"error": "user_id, emoji e song_id são obrigatórios"}
-        
+        if not user_id or not emoji: 
+            return {"error": "user_id e emoji são obrigatórios"}  
         # Verificar se usuário existe
         if not get_user_by_id(user_id):
             return {"error": "Usuário não encontrado"}
         
-        # Verificar se música existe
-        if not get_song(song_id):
+        # Verificar música APENAS se fornecida
+        if song_id and not get_song(song_id):  # ← ADICIONAR song_id check
             return {"error": "Música não encontrada"}
         
         now = datetime.utcnow()
         doc = {
             "user_id": ObjectId(user_id),
-            "song_id": ObjectId(song_id),
             "emoji": emoji,
             "comment": comment,
-            "date": now.strftime("%Y-%m-%d"),  # Data apenas (para agrupamentos)
+            "date": now.strftime("%Y-%m-%d"),
             "created_at": now,
             "updated_at": now
         }
         
+        # Adicionar song_id APENAS se fornecido
+        if song_id:
+            doc["song_id"] = ObjectId(song_id)
+        
         result = db.mood_entries.insert_one(doc)
         
-        # Incrementar contador de reprodução da música
-        db.songs.update_one(
-            {"_id": ObjectId(song_id)},
-            {"$inc": {"play_count": 1}}
-        )
+        # Incrementar contador APENAS se tiver música
+        if song_id:
+            db.songs.update_one(
+                {"_id": ObjectId(song_id)},
+                {"$inc": {"play_count": 1}}
+            )
         
         return {
             "success": True,
@@ -226,15 +235,19 @@ def create_mood_entry(user_id: str, emoji: str, song_id: str, comment: str = "")
     except Exception as e:
         return {"error": f"Erro ao criar entrada de humor: {str(e)}"}
 
-
 def list_mood_entries(user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
-    """Listar entradas de humor de um usuário"""
     try:
         entries = []
         for entry in db.mood_entries.find({"user_id": ObjectId(user_id)}).sort("created_at", -1).limit(limit):
             entry["_id"] = str(entry["_id"])
             entry["user_id"] = str(entry["user_id"])
-            entry["song_id"] = str(entry["song_id"])
+            
+            # Só converter song_id se existir
+            if "song_id" in entry and entry["song_id"]:
+                entry["song_id"] = str(entry["song_id"])
+            else:
+                entry["song_id"] = None
+                
             entries.append(entry)
         return entries
     except Exception as e:
@@ -268,7 +281,10 @@ def get_mood_entries_with_songs(user_id: str, limit: int = 10) -> List[Dict[str,
         for entry in db.mood_entries.aggregate(pipeline):
             entry["_id"] = str(entry["_id"])
             entry["user_id"] = str(entry["user_id"])
-            entry["song_id"] = str(entry["song_id"])
+            if "song_id" in entry and entry["song_id"]:
+                 entry["song_id"] = str(entry["song_id"])
+            else:
+                  entry["song_id"] = None
             
             # Adicionar info da música e usuário
             if entry["song_info"]:
@@ -375,11 +391,22 @@ def get_song(song_id: str) -> Optional[Dict[str, Any]]:
         print(f"Erro ao buscar música: {e}")
         return None
 
-def list_songs(limit: int = 50) -> List[Dict[str, Any]]:
-    """Listar músicas"""
+def list_songs(user_id: str = None, limit: int = 50) -> List[Dict[str, Any]]:
     try:
         songs = []
-        for song in db.songs.find().limit(limit):
+        
+        # Filtro: só músicas do usuário ou globais (sem user_id)
+        if user_id:
+            filter_query = {
+                "$or": [
+                    {"user_id": ObjectId(user_id)},  # Músicas do usuário
+                    {"user_id": None}                # Músicas globais
+                ]
+            }
+        else:
+            filter_query = {}
+        
+        for song in db.songs.find(filter_query).limit(limit):
             song["_id"] = str(song["_id"])
             songs.append(song)
         return songs

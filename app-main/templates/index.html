@@ -583,7 +583,7 @@
         <nav class="nav">
             <div class="logo">
                 <i class="fas fa-music"></i>
-                Registra.Mood
+                RegistraMood
             </div>
             <ul class="nav-links">
                 <li><a href="#" onclick="showSection('home')"><span><i class="fas fa-home"></i> Início</span></a></li>
@@ -963,7 +963,7 @@
         case 'track':
             // Registrar funciona para todos
             if (!currentUser) {
-                showToast('Modo demonstração ativo!', 'success');
+                // showToast('Modo demonstração ativo!', 'successo');
             }
             break;
     }
@@ -1036,6 +1036,9 @@
         // Carregar songs
         async function loadSongs() {
             try {
+                const url = currentUser && !currentUser.isDemo 
+                 ? `/songs?user_id=${currentUser.id}` 
+                 : '/songs';
                 const result = await makeRequest('/songs');
                 if (result.songs) {
                     songs = result.songs;
@@ -1058,17 +1061,19 @@
         }
 
         function updateSongSelect() {
-            const select = document.getElementById('song-select');
-            select.innerHTML = `<option value="">Selecione uma música</option>
+              const select = document.getElementById('song-select');
+             select.innerHTML = `<option value="">Selecione uma música</option>
                                 <option value="custom">Adicionar outra música ✏️</option>`;
-            
-            songs.forEach(song => {
-                const option = document.createElement('option');
+    
+              songs.forEach(song => {
+               const option = document.createElement('option');
                 option.value = song._id;
                 option.textContent = `${song.title} - ${song.artist}`;
-                select.appendChild(option);
-            });
-        }
+                 select.appendChild(option);
+    });
+    
+    console.log(`✅ Select atualizado com ${songs.length} músicas`);
+ }
 
         async function loadQuickStats() {
     try {
@@ -1158,9 +1163,6 @@
                     <i class="fas fa-book-open" style="font-size: 3rem; color: var(--secondary); margin-bottom: 1rem;"></i>
                     <h3>Histórico Vazio</h3>
                     <p style="color: var(--gray);">Registre seu primeiro humor!</p>
-                    <button class="btn" onclick="showSection('track')">
-                        <i class="fas fa-plus"></i> Começar
-                    </button>
                 </div>
             `;
         }
@@ -1252,9 +1254,6 @@
                     <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
                     <h3>Bem-vindo!</h3>
                     <p style="color: var(--gray);">Registre alguns humores para ver suas estatísticas.</p>
-                    <button class="btn" onclick="showSection('track')">
-                        <i class="fas fa-plus"></i> Registrar Humor
-                    </button>
                 </div>
             `;
         }
@@ -1318,12 +1317,6 @@ function generateWellnessInsight(stats) {
                     const songId = songSelect.value;
                     const comment = document.getElementById('mood-comment').value;
 
-                    if (!songId || (songId === 'custom' && !customSong.value.trim())) {
-                        console.log('❌ Nenhuma música selecionada');
-                        showToast('Por favor, selecione ou digite uma música', 'error');
-                        return;
-                    }
-                    
                     // GARANTIR USUÁRIO DEMO EXISTE ANTES DE SALVAR
                     if (!currentUser) {
                         console.log('🔄 Criando usuário demo...');
@@ -1352,6 +1345,9 @@ function generateWellnessInsight(stats) {
                             if (newSongResult.success) {
                                 finalSongId = newSongResult.song_id;
                                 console.log('✅ Música criada com ID:', finalSongId);
+                                await loadSongs(); // Recarregar músicas do servidor
+                                updateSongSelect(); // Atualizar o select
+                                showToast('Música adicionada! ✨', 'success');
                             } else {
                                 console.log('❌ Erro ao criar música:', newSongResult);
                                 showToast('Erro ao criar música', 'error');
@@ -1364,12 +1360,17 @@ function generateWellnessInsight(stats) {
                         const moodData = {
                             user_id: currentUser.id,
                             emoji: selectedEmoji,
-                            song_id: finalSongId,
                             comment: comment
                         };
                         
-                        console.log('📦 Dados do mood:', moodData);
-                        
+
+                         // Adicionar música APENAS se selecionada
+                        if (finalSongId && finalSongId !== '' && finalSongId !== 'custom') {
+                            moodData.song_id = finalSongId;
+                        }
+
+                        console.log(' Dados do mood:', moodData);  // 
+
                         const result = await makeRequest('/moods', {
                             method: 'POST',
                             body: JSON.stringify(moodData)
@@ -1431,38 +1432,54 @@ function generateWellnessInsight(stats) {
 
 
 
-            document.getElementById('register-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
+          document.getElementById('register-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const username = document.getElementById('register-username').value;
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+    
+    try {
+        const result = await makeRequest('/users', {
+            method: 'POST',
+            body: JSON.stringify({ username, email, password })
+        });
         
-        const username = document.getElementById('register-username').value;
-        const email = document.getElementById('register-email').value;
-        const password = document.getElementById('register-password').value;
-        
-        try {
-            const result = await makeRequest('/users', {
-                method: 'POST',
-                body: JSON.stringify({ username, email, password })
-            });
+        if (result.success) {
+            showToast('Conta criada com sucesso! 🎊');
+            closeModal('register-modal');
             
-            if (result.success) {
-                showToast('Conta criada com sucesso! 🎊');
-                closeModal('register-modal');
+            // LOGIN AUTOMÁTICO APÓS CADASTRO
+            try {
+                const loginResult = await makeRequest('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
                 
-                // USUÁRIO REAL CRIADO - não é demo
-                currentUser = { 
-                    id: result.user_id,
-                    isDemo: false // USUÁRIO REAL
-                };
-                isLoggedIn = true; // MARCAR COMO LOGADO
-                
-                updateUserMenu();
-            } else {
-                showToast('Erro ao criar conta', 'error');
+                if (loginResult.success) {
+                    currentUser = { 
+                        id: loginResult.user._id, 
+                        email: loginResult.user.email,
+                        username: loginResult.user.username, // 
+                        isDemo: false
+                    };
+                    isLoggedIn = true;
+                    updateUserMenu();
+                    showToast('Login automático realizado! 🎉');
+                }
+            } catch (loginError) {
+                console.log('Erro no login automático:', loginError);
+                // Se falhar, apenas limpar form
             }
-        } catch (error) {
-            showToast('Erro ao criar conta', 'error');
+            
+            document.getElementById('register-form').reset();
+        } else {
+            showToast(result.error || 'Erro ao criar conta', 'error');
         }
-    });
+    } catch (error) {
+        showToast('Erro ao criar conta', 'error');
+    }
+});
 }
 
         function resetMoodForm() {
@@ -1479,7 +1496,7 @@ function generateWellnessInsight(stats) {
     const userMenu = document.querySelector('.user-menu');
     if (isLoggedIn && currentUser && !currentUser.isDemo) {
         userMenu.innerHTML = `
-            <span style="margin-right: 1rem;">👤 ${currentUser.email || currentUser.username}</span>
+            <span style="margin-right: 1rem;">👤 ${currentUser.username || currentUser.email}</span>
             <button class="btn secondary" onclick="logout()">
                 <i class="fas fa-sign-out-alt"></i> Sair
             </button>
@@ -1498,7 +1515,6 @@ function generateWellnessInsight(stats) {
     isLoggedIn = false;
     location.reload();
 }
-
         // Toast
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
