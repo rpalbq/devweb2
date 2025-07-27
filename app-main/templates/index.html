@@ -786,7 +786,7 @@
                 </button>
             </form>
             <p style="margin-top: 1rem; text-align: center;">
-                Não tem conta? <a href="#" onclick="switchModal('login-modal', 'register-modal')" style="color: var(--primary);">Criar conta</a>
+                Não tem conta? <a href="#" onclick="switchModal('login-modal', 'user-type-choice-modal')" style="color: var(--primary);">Criar conta</a>
             </p>
             <button class="btn secondary" style="width: 100%; margin-top: 1rem;" onclick="closeModal('login-modal')">
                 Cancelar
@@ -794,35 +794,103 @@
         </div>
     </div>
 
-    <!-- Register Modal -->
-    <div id="register-modal" class="modal">
-        <div class="modal-content">
-            <h3>Criar nova conta</h3>
-            <form id="register-form">
-                <div class="form-group">
-                    <label for="register-username">Nome de usuário</label>
-                    <input type="text" id="register-username" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-email">Email</label>
-                    <input type="email" id="register-email" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-password">Senha</label>
-                    <input type="password" id="register-password" class="form-control" required minlength="6">
-                </div>
-                <button type="submit" class="btn">
-                    <i class="fas fa-user-plus"></i> Criar Conta
-                </button>
-            </form>
-            <p style="margin-top: 1rem; text-align: center;">
-                Já tem conta? <a href="#" onclick="switchModal('register-modal', 'login-modal')" style="color: var(--primary);">Fazer login</a>
-            </p>
-            <button class="btn secondary" style="width: 100%; margin-top: 1rem;" onclick="closeModal('register-modal')">
-                Cancelar
-            </button>
+<!--  escolher o tipo de usuário -->
+<div id="user-type-choice-modal" class="modal">
+    <div class="modal-content">
+        <h3>Criar nova conta</h3>
+        <p style="color: var(--gray); margin-bottom: 2rem; text-align: center;">Escolha o tipo de conta que você deseja criar:</p>
+        
+        <div style="display: flex; gap: 1.5rem; margin-bottom: 2rem;">
+            <!-- Opção Paciente -->
+            <div class="card" style="flex: 1; cursor: pointer; text-align: center; padding: 2rem; transition: all 0.3s ease;" 
+                 onclick="selectUserType('patient')"
+                 onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-5px)'"
+                 onmouseout="this.style.borderColor='var(--glass-border)'; this.style.transform='translateY(0)'">
+                <i class="fas fa-user" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                <h4 style="margin-bottom: 0.5rem; color: var(--light);">Sou Paciente</h4>
+                <p style="color: var(--gray); font-size: 0.9rem; margin: 0;">
+                    Registrar meus humores e emoções
+                </p>
+            </div>
+            
+            <!-- Opção de profissional -->
+            <div class="card" style="flex: 1; cursor: pointer; text-align: center; padding: 2rem; transition: all 0.3s ease;" 
+                 onclick="selectUserType('professional')"
+                 onmouseover="this.style.borderColor='var(--secondary)'; this.style.transform='translateY(-5px)'"
+                 onmouseout="this.style.borderColor='var(--glass-border)'; this.style.transform='translateY(0)'">
+                <i class="fas fa-user-md" style="font-size: 3rem; color: var(--secondary); margin-bottom: 1rem;"></i>
+                <h4 style="margin-bottom: 0.5rem; color: var(--light);">Sou Profissional</h4>
+                <p style="color: var(--gray); font-size: 0.9rem; margin: 0;">
+                    Acompanhar pacientes como psicólogo
+                </p>
+            </div>
         </div>
+        
+        <p style="margin-top: 1rem; text-align: center;">
+            Já tem conta? <a href="#" onclick="switchModal('user-type-choice-modal', 'login-modal')" style="color: var(--primary);">Fazer login</a>
+        </p>
+        <button class="btn secondary" style="width: 100%; margin-top: 1rem;" onclick="closeModal('user-type-choice-modal')">
+            Cancelar
+        </button>
     </div>
+</div>
+
+
+    <!-- Register o Modal -->
+    <div id="register-modal" class="modal">
+    <div class="modal-content">
+        <h3 id="register-title">Criar nova conta</h3>
+        <p id="register-subtitle" style="color: var(--gray); margin-bottom: 1.5rem;"></p>
+        
+        <form id="register-form">
+            <!-- Campos básicos  -->
+            <div class="form-group">
+                <label for="register-username">Nome de usuário</label>
+                <input type="text" id="register-username" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="register-email">Email</label>
+                <input type="email" id="register-email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="register-password">Senha</label>
+                <input type="password" id="register-password" class="form-control" required minlength="6">
+            </div>
+            
+            <!-- Campos específicos do profissional -->
+            <div id="professional-extra-fields" style="display: none;">
+                <div class="form-group">
+                    <label for="register-crp">CRP (Conselho Regional de Psicologia)</label>
+                    <input type="text" id="register-crp" class="form-control" placeholder="Ex: 12/123456">
+                    <small style="color: var(--gray); font-size: 0.8rem;">Será usado para identificação pelos pacientes</small>
+                </div>
+                <div class="form-group">
+                    <label for="register-specialization">Especialização (opcional)</label>
+                    <input type="text" id="register-specialization" class="form-control" placeholder="Ex: Psicologia Clínica">
+                </div>
+                <div class="form-group">
+                    <label for="register-clinic">Nome da clínica/consultório (opcional)</label>
+                    <input type="text" id="register-clinic" class="form-control" placeholder="Ex: Clínica Bem-Estar">
+                </div>
+            </div>
+            
+            <!-- Campo para guardar o tipo selecionado -->
+            <input type="hidden" id="selected-user-type" value="">
+            
+            <button type="submit" class="btn" id="register-submit-btn">
+                <i class="fas fa-user-plus"></i> Criar Conta
+            </button>
+        </form>
+        
+        <p style="margin-top: 1rem; text-align: center;">
+            <a href="#" onclick="switchModal('register-modal', 'user-type-choice-modal')" style="color: var(--primary);">← Voltar à escolha</a> |
+            <a href="#" onclick="switchModal('register-modal', 'login-modal')" style="color: var(--primary);">Fazer login</a>
+        </p>
+        <button class="btn secondary" style="width: 100%; margin-top: 1rem;" onclick="closeModal('register-modal')">
+            Cancelar
+        </button>
+    </div>
+</div>
 
     <!-- Toast -->
     <div id="toast" class="toast"></div>
@@ -919,7 +987,46 @@
         }
     }
 }
-          
+          let selectedUserType = '';
+
+function selectUserType(userType) {
+    selectedUserType = userType;
+    document.getElementById('selected-user-type').value = userType;
+    
+    // Configurar o modal de cadastro baseado no tipo escolhido
+    if (userType === 'professional') {
+        // Configuração para PROFISSIONAL
+        document.getElementById('register-title').innerHTML = '<i class="fas fa-user-md" style="color: var(--secondary);"></i> Cadastro Profissional';
+        document.getElementById('register-subtitle').textContent = 'Acompanhe o bem-estar dos seus pacientes';
+        document.getElementById('register-submit-btn').innerHTML = '<i class="fas fa-user-md"></i> Criar Conta Profissional';
+        
+        // Mostrar campos extras do profissional
+        document.getElementById('professional-extra-fields').style.display = 'block';
+        
+        // Tornar CRP obrigatório
+        document.getElementById('register-crp').required = true;
+        
+    } else {
+        // Configuração para PACIENTE
+        document.getElementById('register-title').innerHTML = '<i class="fas fa-user" style="color: var(--primary);"></i> Cadastro de Paciente';
+        document.getElementById('register-subtitle').textContent = 'Registre suas emoções e acompanhe seu bem-estar';
+        document.getElementById('register-submit-btn').innerHTML = '<i class="fas fa-user-plus"></i> Criar Conta de Paciente';
+        
+        // Esconder campos extras
+        document.getElementById('professional-extra-fields').style.display = 'none';
+        
+        // CRP não é obrigatório
+        document.getElementById('register-crp').required = false;
+    }
+    
+    // Fechar modal de escolha e abrir modal de cadastro
+    closeModal('user-type-choice-modal');
+    setTimeout(() => {
+        openModal('register-modal');
+    }, 300);
+}
+
+
 
         function animateParticles() {
             const particles = document.querySelectorAll('.particle');
@@ -945,7 +1052,8 @@
 
         // Navigation
       function showSection(sectionName) {
-    // APENAS navegar - SEM abrir modal automaticamente
+
+    // Apenas navegar sem abrir modal automaticamente
     document.querySelectorAll('.section').forEach(section => {
         section.classList.remove('active');
     });
@@ -1032,6 +1140,9 @@
                 throw error;
             }
         }   
+
+
+
 
         // Carregar songs
         async function loadSongs() {
@@ -1556,6 +1667,7 @@ function generateWellnessInsight(stats) {
        };
         return moodNames[emoji] || '';
     }
+    
     </script>
 </body>
 </html>

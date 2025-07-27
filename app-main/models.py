@@ -13,29 +13,53 @@ def init_db(database_instance):
 
 # USsuarios
 
-def create_user(username: str, email: str, password_hash: str) -> Dict[str, Any]:
-    """Criar usuário"""
+def create_user(username: str, email: str, password_hash: str, user_type: str = "patient", **extra_fields) -> Dict[str, Any]:
+    """Criar usuário com tipo (professional/patient)"""
     try:
-
+        # Verificar se email já existe
         existing = db.users.find_one({"email": email})
         if existing:
-          return {"error": "E-mail já utilizado"}  
+            return {"error": "E-mail já utilizado"}  
 
-        # Criar usuário
+        # Validar tipo de usuário
+        if user_type not in ["professional", "patient"]:
+            return {"error": "Tipo de usuário inválido"}
+
+        # Documento base do usuário
         now = datetime.utcnow()
-        result = db.users.insert_one({
+        user_doc = {
             "username": username,
             "email": email,
             "password_hash": password_hash,
+            "user_type": user_type,  # ← CAMPO PRINCIPAL
             "active": True,
             "created_at": now,
             "updated_at": now
-        })
+        }
+
+        # Adicionar campos específicos baseado no tipo
+        if user_type == "professional":
+            user_doc.update({
+                "crp": extra_fields.get("crp", ""),
+                "specialization": extra_fields.get("specialization", ""),
+                "clinic_name": extra_fields.get("clinic_name", ""),
+                "patients": []  # Lista de IDs dos pacientes vinculados
+            })
+        else:  # patient
+            user_doc.update({
+                "age": extra_fields.get("age"),
+                "gender": extra_fields.get("gender"),
+                "linked_professional": None  # ID do profissional (null por padrão)
+            })
+
+        # Inserir no banco
+        result = db.users.insert_one(user_doc)
         
         return {
             "success": True, 
             "user_id": str(result.inserted_id),
-            "message": "Usuário criado com sucesso!"
+            "user_type": user_type,
+            "message": f"Usuário criado com sucesso!"
         }
         
     except Exception as e:

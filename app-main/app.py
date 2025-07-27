@@ -417,18 +417,102 @@ def login():
         if not check_password_hash(user['password_hash'], data['password']):
             return jsonify({"error": "Credenciais inválidas"}), 401
         
-        
+        # Remover senha da resposta
         user.pop('password_hash', None)
         
         return jsonify({
             "success": True,
             "message": "Login realizado com sucesso!",
-            "user": user
+            "user": user,
+            "user_type": user.get('user_type', 'patient')  # ← ADICIONAR ISSO
         })
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
+@app.route('/auth/register-patient', methods=['POST'])
+def register_patient():
+    """Cadastro específico para pacientes (mesma estrutura do cadastro atual)"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "JSON é obrigatório"}), 400
+        
+        # Campos obrigatórios para paciente
+        required_fields = ['username', 'email', 'password']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        
+        if missing_fields:
+            return jsonify({
+                "error": f"Campos obrigatórios: {', '.join(missing_fields)}"
+            }), 400
+        
+        # Hash da senha
+        password_hash = generate_password_hash(data['password'])
+        
+        # Criar paciente
+        result = models.create_user(
+            username=data['username'],
+            email=data['email'],
+            password_hash=password_hash,
+            user_type="patient",
+            age=data.get('age'),
+            gender=data.get('gender')
+        )
+        
+        if 'error' in result:
+            return jsonify(result), 400
+        
+        return jsonify(result), 201
+        
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+    
+
+@app.route('/auth/register-professional', methods=['POST'])
+def register_professional():
+    """Cadastro específico para profissionais"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "JSON é obrigatório"}), 400
+        
+        # Campos obrigatórios para profissional
+        required_fields = ['username', 'email', 'password', 'crp']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        
+        if missing_fields:
+            return jsonify({
+                "error": f"Campos obrigatórios: {', '.join(missing_fields)}"
+            }), 400
+        
+        # Hash da senha
+        password_hash = generate_password_hash(data['password'])
+        
+        # Criar profissional
+        result = models.create_user(
+            username=data['username'],
+            email=data['email'],
+            password_hash=password_hash,
+            user_type="professional",
+            crp=data['crp'],
+            specialization=data.get('specialization', ''),
+            clinic_name=data.get('clinic_name', '')
+        )
+        
+        if 'error' in result:
+            return jsonify(result), 400
+        
+        return jsonify(result), 201
+        
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
+
+
+
 # erros 
 
 @app.errorhandler(404)
