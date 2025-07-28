@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Humor do Usuário - Registra.Mood</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="bg-animation">
+        <div class="particle-report" style="width: 20px; height: 20px; top: 10%; left: 20%;"></div>
+        <div class="particle-report" style="width: 15px; height: 15px; top: 50%; left: 80%;"></div>
+        <div class="particle-report" style="width: 25px; height: 25px; top: 70%; left: 30%;"></div>
+        <div class="particle-report" style="width: 18px; height: 18px; top: 30%; left: 60%;"></div>
+        <div class="particle-report" style="width: 22px; height: 22px; top: 80%; left: 70%;"></div>
+    </div>
+
+    <div class="container-report"> <h1><i class="fas fa-chart-line"></i> Relatório de Humor</h1>
+        <div class="header-info">
+            <p><strong>ID do Usuário:</strong> <span id="userIdDisplay"></span></p>
+            <p><strong>Período:</strong> Últimos <span id="periodDaysDisplay"></span> dias</p>
+            <p><strong>Gerado em:</strong> <span id="generatedAtDisplay"></span></p>
+        </div>
+
+        <div class="summary-cards">
+            <div class="card">
+                <h2>Total de Entradas (Período)</h2>
+                <p id="totalEntriesPeriod" class="large-number"></p>
+            </div>
+            <div class="card">
+                <h2>Total de Entradas (Geral)</h2>
+                <p id="totalEntriesAllTime" class="large-number"></p>
+            </div>
+            <div class="card">
+                <h2>Humor Mais Comum</h2>
+                <p id="mostCommonMood" class="large-emoji"></p>
+            </div>
+        </div>
+
+        <div class="mood-distribution-section">
+            <h2>Distribuição de Humor</h2>
+            <table id="moodDistributionTable">
+                <thead>
+                    <tr>
+                        <th>Emoji</th>
+                        <th>Nome do Humor</th>
+                        <th>Contagem</th>
+                        <th>Porcentagem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <p id="noDataMessage" class="hidden">Nenhum dado de humor encontrado para o período.</p>
+        </div>
+    </div>
+
+    <script>
+      
+        function getMoodName(emoji) {
+            const moodNames = {
+                '😊': 'Feliz',
+                '😢': 'Triste', 
+                '😡': 'Bravo',
+                '😰': 'Ansioso',
+                '😴': 'Cansado',
+                '🥳': 'Animado',
+                '😍': 'Apaixonado',
+                '🤔': 'Pensativo',
+                '😐': 'Neutro/Calmo' 
+            };
+            return moodNames[emoji] || 'Desconhecido';
+        }
+
+        
+        function animateParticles() {
+            const particles = document.querySelectorAll('.particle-report');
+            particles.forEach((particle, index) => {
+                particle.style.animationDelay = `${index * 2}s`;
+            });
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userId = "{{ user_id }}"; 
+            const days = 30; 
+
+            document.getElementById('userIdDisplay').textContent = userId;
+            document.getElementById('periodDaysDisplay').textContent = days;
+
+           
+            animateParticles();
+
+            
+            fetch(`/reports/user_mood_stats/${userId}?days=${days}`)
+                .then(response => {
+                    if (!response.ok) {
+                        
+                        return response.json().then(errorData => { throw new Error(errorData.error || `HTTP error! status: ${response.status}`); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('generatedAtDisplay').textContent = new Date(data.generated_at).toLocaleString('pt-BR');
+
+                    if (data.total_entries_period > 0) { 
+                        document.getElementById('totalEntriesPeriod').textContent = data.total_entries_period;
+                        document.getElementById('totalEntriesAllTime').textContent = data.total_entries_all_time;
+                        document.getElementById('mostCommonMood').textContent = data.most_common_mood || 'N/A';
+
+                        const tableBody = document.querySelector('#moodDistributionTable tbody');
+                        data.mood_distribution.forEach(item => {
+                            const row = tableBody.insertRow();
+                            const emojiCell = row.insertCell();
+                            const nameCell = row.insertCell(); 
+                            const countCell = row.insertCell();
+                            const percentageCell = row.insertCell();
+
+                            emojiCell.textContent = item._id;
+                            nameCell.textContent = getMoodName(item._id); 
+                            countCell.textContent = item.count;
+                            const percentage = data.total_entries_period > 0 ? ((item.count / data.total_entries_period) * 100).toFixed(1) : 0;
+                            percentageCell.textContent = `${percentage}%`;
+                        });
+                    } else {
+                        // Se não houver dados
+                        document.getElementById('noDataMessage').classList.remove('hidden');
+                        document.getElementById('moodDistributionTable').style.display = 'none'; // Esconde a tabela vazia
+                        document.getElementById('totalEntriesPeriod').textContent = 0;
+                        document.getElementById('totalEntriesAllTime').textContent = data.total_entries_all_time || 0; 
+                        document.getElementById('mostCommonMood').textContent = 'N/A';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar dados do relatório:', error);
+                    document.getElementById('noDataMessage').textContent = `Erro ao carregar o relatório: ${error.message}.`;
+                    document.getElementById('noDataMessage').classList.remove('hidden');
+                    document.getElementById('moodDistributionTable').style.display = 'none';
+                   
+                    document.getElementById('totalEntriesPeriod').textContent = 0;
+                    document.getElementById('totalEntriesAllTime').textContent = 0;
+                    document.getElementById('mostCommonMood').textContent = 'N/A';
+                });
+        });
+    </script>
+</body>
+</html>
