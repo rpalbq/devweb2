@@ -46,6 +46,11 @@ except Exception as e:
 
 #Rotas
 
+@app.route('/style.css')
+def serve_css():
+    return send_from_directory('templates', 'style.css', mimetype='text/css')
+
+
 @app.route('/')
 def index():
     return send_from_directory('templates', 'index.html')
