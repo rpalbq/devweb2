@@ -24,7 +24,8 @@ services:
       - MONGO_URI=mongodb://mongo:27017
     volumes:
       - ./report-service:/app
-mongo-express:
+
+  mongo-express:
     image: mongo-express
     container_name: mongo_express
     restart: always
@@ -40,7 +41,7 @@ mongo-express:
     networks:
       - default 
 
-  mongo:
+  mongo: 
     image: mongo:5.0
     container_name: mongo
     ports:
@@ -48,6 +49,9 @@ mongo-express:
     volumes:
       - mongo_data:/data/db
 
-
-volumes:
+volumes: 
   mongo_data:
+
+networks: 
+  default:
+    driver: bridge
