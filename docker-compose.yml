@@ -24,6 +24,21 @@ services:
       - MONGO_URI=mongodb://mongo:27017
     volumes:
       - ./report-service:/app
+mongo-express:
+    image: mongo-express
+    container_name: mongo_express
+    restart: always
+    ports:
+      - "8082:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_BASICAUTH_USERNAME: user
+      ME_CONFIG_BASICAUTH_PASSWORD: password
+    depends_on:
+      - mongo
+    networks:
+      - default 
 
   mongo:
     image: mongo:5.0
