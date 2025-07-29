@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Humor do Usuário - Registra.Mood</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="bg-animation">
+        <div class="particle" style="width: 20px; height: 20px; top: 10%; left: 20%;"></div>
+        <div class="particle" style="width: 15px; height: 15px; top: 50%; left: 80%;"></div>
+        <div class="particle" style="width: 25px; height: 25px; top: 70%; left: 30%;"></div>
+        <div class="particle" style="width: 18px; height: 18px; top: 30%; left: 60%;"></div>
+        <div class="particle" style="width: 22px; height: 22px; top: 80%; left: 70%;"></div>
+    </div>
+
+    <div class="container-report">
+        <div class="report-header">
+            <h1><i class="fas fa-chart-line"></i> Relatório de Humor</h1>
+            <button class="btn-back" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </button>
+        </div>
+
+        <div class="header-info">
+            <p><strong>ID do Usuário:</strong> <span id="userIdDisplay">{{ user_id }}</span></p>
+            <p><strong>Nome:</strong> <span id="usernameDisplay">Carregando...</span></p>
+            <p><strong>Período:</strong> Últimos <span id="periodDaysDisplay">30</span> dias</p>
+            <p><strong>Gerado em:</strong> <span id="generatedAtDisplay">Carregando...</span></p>
+        </div>
+
+        <!-- Cards de Resumo -->
+        <div class="summary-cards">
+            <div class="card">
+                <h2>Total de Entradas (Período)</h2>
+                <p id="totalEntriesPeriod" class="large-number">0</p>
+                <small id="activityLevel" class="activity-indicator"></small>
+            </div>
+            <div class="card">
+                <h2>Total de Entradas (Geral)</h2>
+                <p id="totalEntriesAllTime" class="large-number">0</p>
+            </div>
+            <div class="card">
+                <h2>Humor Mais Comum</h2>
+                <p id="mostCommonMood" class="large-emoji">😊</p>
+                <small id="moodName" class="mood-name"></small>
+            </div>
+            <div class="card">
+                <h2>Consistência</h2>
+                <p id="consistency" class="consistency-text">0/30 dias</p>
+                <div id="consistencyBar" class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribuição de Humor -->
+        <div class="mood-distribution-section">
+            <h2><i class="fas fa-chart-pie"></i> Distribuição de Humor</h2>
+            <div id="moodChart" class="mood-chart"></div>
+            
+            <table id="moodDistributionTable">
+                <thead>
+                    <tr>
+                        <th>Emoji</th>
+                        <th>Nome do Humor</th>
+                        <th>Contagem</th>
+                        <th>Porcentagem</th>
+                        <th>Barra de Progresso</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <p id="noDataMessage" class="hidden">Nenhum dado de humor encontrado para o período.</p>
+        </div>
+
+        <!-- Top Músicas -->
+        <div class="top-songs-section">
+            <h2><i class="fas fa-music"></i> Músicas Mais Associadas</h2>
+            <div id="topSongsList" class="songs-list"></div>
+        </div>
+
+        <!-- Insights -->
+        <div class="insights-section">
+            <h2><i class="fas fa-lightbulb"></i> Insights</h2>
+            <div id="insightsContent" class="insights-content"></div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Gerando relatório...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="error-state hidden">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Erro ao Carregar Relatório</h3>
+            <p id="errorMessage"></p>
+            <button class="btn" onclick="location.reload()">
+                <i class="fas fa-refresh"></i> Tentar Novamente
+            </button>
+        </div>
+    </div>
+
+    <script>
+        //  Mapeamento de emojis para nomes
+        function getMoodName(emoji) {
+            const moodNames = {
+                '😊': 'Feliz',
+                '😢': 'Triste', 
+                '😡': 'Bravo',
+                '😰': 'Ansioso',
+                '😴': 'Cansado',
+                '🥳': 'Animado',
+                '😍': 'Apaixonado',
+                '🤔': 'Pensativo',
+                '😐': 'Neutro/Calmo' 
+            };
+            return moodNames[emoji] || 'Desconhecido';
+        }
+
+        //  Animar partículas
+        function animateParticles() {
+            const particles = document.querySelectorAll('.particle');
+            particles.forEach((particle, index) => {
+                particle.style.animationDelay = `${index * 2}s`;
+            });
+        }
+
+        //  Gerar insights baseados nos dados
+        function generateInsights(data) {
+            const insights = [];
+            
+            if (data.total_entries_period === 0) {
+                insights.push({
+                    type: 'info',
+                    text: 'Nenhum registro de humor foi encontrado neste período. Comece a registrar suas emoções para obter insights personalizados!'
+                });
+                return insights;
+            }
+            
+            // Insight sobre atividade
+            const activityLevel = data.report_summary?.activity_level || 'Baixo';
+            if (activityLevel === 'Alto') {
+                insights.push({
+                    type: 'success',
+                    text: `Excelente consistência! Você registrou seu humor ${data.total_entries_period} vezes nos últimos ${data.period_days} dias.`
+                });
+            } else if (activityLevel === 'Baixo') {
+                insights.push({
+                    type: 'warning',
+                    text: 'Tente registrar seu humor com mais frequência para obter análises mais precisas do seu bem-estar.'
+                });
+            }
+            
+            // Insight sobre humor dominante
+            if (data.most_common_mood) {
+                const moodName = getMoodName(data.most_common_mood);
+                const mainMoodCount = data.mood_distribution[0]?.count || 0;
+                const percentage = Math.round((mainMoodCount / data.total_entries_period) * 100);
+                
+                if (percentage >= 60) {
+                    if (['😊', '🥳', '😍'].includes(data.most_common_mood)) {
+                        insights.push({
+                            type: 'success',
+                            text: `Seu humor tem sido predominantemente ${moodName.toLowerCase()} (${percentage}% do tempo). Continue fazendo o que te deixa bem!`
+                        });
+                    } else if (['😢', '😡', '😰'].includes(data.most_common_mood)) {
+                        insights.push({
+                            type: 'info',
+                            text: `Você tem se sentido ${moodName.toLowerCase()} com frequência (${percentage}% do tempo). Considere conversar com alguém de confiança ou buscar atividades que te façam bem.`
+                        });
+                    }
+                } else {
+                    insights.push({
+                        type: 'info',
+                        text: `Seu humor tem variado bastante, com ${data.mood_distribution.length} emoções diferentes registradas. Essa diversidade emocional é natural!`
+                    });
+                }
+            }
+            
+            // Insight sobre músicas
+            if (data.top_songs && data.top_songs.length > 0) {
+                const topSong = data.top_songs[0];
+                insights.push({
+                    type: 'info',
+                    text: `A música mais associada aos seus humores é "${topSong.song_title}" de ${topSong.song_artist}, registrada ${topSong.count} vezes.`
+                });
+            }
+            
+            return insights;
+        }
+
+        //  Renderizar insights
+        function renderInsights(insights) {
+            const container = document.getElementById('insightsContent');
+            
+            if (insights.length === 0) {
+                container.innerHTML = '<p class="no-insights">Registre mais humores para receber insights personalizados.</p>';
+                return;
+            }
+            
+            container.innerHTML = insights.map(insight => `
+                <div class="insight-item insight-${insight.type}">
+                    <i class="fas fa-${insight.type === 'success' ? 'check-circle' : insight.type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    <p>${insight.text}</p>
+                </div>
+            `).join('');
+        }
+
+        //  Renderizar top músicas
+        function renderTopSongs(songs) {
+            const container = document.getElementById('topSongsList');
+            
+            if (!songs || songs.length === 0) {
+                container.innerHTML = '<p class="no-songs">Nenhuma música foi associada aos registros deste período.</p>';
+                return;
+            }
+            
+            container.innerHTML = songs.map((song, index) => `
+                <div class="song-item">
+                    <div class="song-rank">#${index + 1}</div>
+                    <div class="song-info">
+                        <h4>${song.song_title}</h4>
+                        <p>${song.song_artist}</p>
+                    </div>
+                    <div class="song-count">${song.count} vezes</div>
+                </div>
+            `).join('');
+        }
+
+        //  Atualizar barra de consistência
+        function updateConsistencyBar(daysWithEntries, totalDays) {
+            const percentage = Math.round((daysWithEntries / totalDays) * 100);
+            const progressFill = document.querySelector('#consistencyBar .progress-fill');
+            
+            progressFill.style.width = `${percentage}%`;
+            progressFill.style.backgroundColor = 
+                percentage >= 80 ? '#10b981' : 
+                percentage >= 50 ? '#f59e0b' : '#ef4444';
+        }
+
+        // Função principal para carregar dados
+        async function loadReportData() {
+            const userId = "{{ user_id }}";
+            const days = 30;
+            
+            try {
+                // Mostrar loading
+                document.getElementById('loadingState').style.display = 'block';
+                document.querySelectorAll('.container-report > *:not(#loadingState):not(#errorState)').forEach(el => {
+                el.style.display = 'none';
+               });
+                
+                console.log(` Carregando relatório para usuário: ${userId}`);
+                
+                const response = await fetch(`/reports/user_mood_stats/${userId}?days=${days}`);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Dados carregados:', data);
+                
+                // Esconder loading e mostrar conteúdo
+                document.getElementById('loadingState').style.display = 'none';
+                document.querySelectorAll('.container-report > *:not(#loadingState):not(#errorState)').forEach(el => {
+                    el.style.display = 'block';
+                });
+                
+                // Preencher informações básicas
+                document.getElementById('userIdDisplay').textContent = userId;
+                document.getElementById('usernameDisplay').textContent = data.user_info?.username || 'Usuário';
+                document.getElementById('periodDaysDisplay').textContent = days;
+                document.getElementById('generatedAtDisplay').textContent = new Date(data.generated_at).toLocaleString('pt-BR');
+                
+                // Preencher cards de resumo
+                document.getElementById('totalEntriesPeriod').textContent = data.total_entries_period;
+                document.getElementById('totalEntriesAllTime').textContent = data.total_entries_all_time;
+                document.getElementById('mostCommonMood').textContent = data.most_common_mood || '😊';
+                document.getElementById('moodName').textContent = getMoodName(data.most_common_mood);
+                
+                // Atividade level
+                const activityLevel = data.report_summary?.activity_level || 'Baixo';
+                document.getElementById('activityLevel').textContent = `Nível: ${activityLevel}`;
+                document.getElementById('activityLevel').className = `activity-indicator activity-${activityLevel.toLowerCase()}`;
+                
+                // Consistência
+                const daysWithEntries = data.unique_days_with_entries || 0;
+                document.getElementById('consistency').textContent = `${daysWithEntries}/${days} dias`;
+                updateConsistencyBar(daysWithEntries, days);
+                
+                if (data.total_entries_period > 0) {
+                    // Renderizar tabela de distribuição
+                    const tableBody = document.querySelector('#moodDistributionTable tbody');
+                    tableBody.innerHTML = '';
+                    
+                    data.mood_distribution.forEach(item => {
+                        const row = tableBody.insertRow();
+                        const percentage = Math.round((item.count / data.total_entries_period) * 100);
+                        
+                        row.innerHTML = `
+                            <td class="emoji-cell">${item._id}</td>
+                            <td>${getMoodName(item._id)}</td>
+                            <td>${item.count}</td>
+                            <td>${percentage}%</td>
+                            <td>
+                                <div class="mini-progress-bar">
+                                    <div class="mini-progress-fill" style="width: ${percentage}%"></div>
+                                </div>
+                            </td>
+                        `;
+                    });
+                    
+                    // Renderizar top músicas
+                    renderTopSongs(data.top_songs);
+                    
+                    // Gerar e renderizar insights
+                    const insights = generateInsights(data);
+                    renderInsights(insights);
+                    
+                } else {
+                    // Caso sem dados
+                    document.getElementById('noDataMessage').classList.remove('hidden');
+                    document.getElementById('moodDistributionTable').style.display = 'none';
+                    document.querySelector('.top-songs-section').style.display = 'none';
+                    
+                    renderInsights([{
+                        type: 'info',
+                        text: 'Nenhum registro encontrado neste período. Comece a registrar seus humores para obter um relatório detalhado!'
+                    }]);
+                }
+                
+            } catch (error) {
+                console.error('❌ Erro ao carregar relatório:', error);
+                
+                // Mostrar erro
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('errorState').classList.remove('hidden');
+                document.getElementById('errorMessage').textContent = error.message;
+                
+                // Esconder outros elementos
+                document.querySelectorAll('.container-report > *:not(#errorState):not(#loadingState)').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
+        }
+
+        // Inicializar quando página carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log(' Página de relatório carregada!');
+            animateParticles();
+            loadReportData();
+        });
+    </script>
+</body>
+</html>

@@ -206,6 +206,44 @@
                     <!-- Stats vão ser carregados aqui -->
                 </div>
             </div>
+
+            <div class="card" style="grid-column: span 2;">
+    <h3><i class="fas fa-file-alt"></i> Relatórios Detalhados</h3>
+    <p>Visualize relatórios completos com insights personalizados</p>
+    <button class="btn" onclick="openDetailedReport()" style="margin-top: 1rem;">
+        <i class="fas fa-chart-line"></i> Ver Relatório Completo
+    </button>
+</div>
+
+<!-- Seção stats -->
+<section id="stats" class="section">
+    <div class="mood-section">
+        <h2>Estatísticas Detalhadas</h2>
+        <div id="detailed-stats">
+            <!-- Stats vão ser carregados aqui -->
+        </div>
+    </div>
+
+    <!-- Card de relatórios existente -->
+    <div class="card" style="grid-column: span 2;">
+        <h3><i class="fas fa-file-alt"></i> Relatórios Detalhados</h3>
+        <p>Visualize relatórios completos com insights personalizados</p>
+        <button class="btn" onclick="openDetailedReport()" style="margin-top: 1rem;">
+            <i class="fas fa-chart-line"></i> Ver Relatório Completo
+        </button>
+    </div>
+
+    <!-- 👆 ADICIONAR NOVO CARD AQUI: -->
+    <div class="card" id="professional-dashboard" style="display: none; grid-column: span 2;">
+        <h3><i class="fas fa-users"></i> Pacientes Cadastrados</h3>
+        <p>Clique em um paciente para ver seu relatório completo</p>
+        <div id="patients-list">
+            <p style="text-align: center; color: var(--gray);">Carregando pacientes...</p>
+        </div>
+    </div>
+</section>
+
+
         </section>
     </main>
 
@@ -353,9 +391,12 @@
             testarAPI();
             
             loadSongs();
-            loadQuickStats();
             setupFormHandlers();
             animateParticles();
+            // Novas funcionalidades
+            addReportsToNavbar();
+            checkReportService();
+            loadQuickStatsEnhanced(); // ← SÓ ESTA
         });
 
         // FUNÇÃO PARA TESTAR API
@@ -564,10 +605,10 @@ function selectUserType(userType) {
                     body: options.body
                 });
                 
-                console.log('📡 Resposta HTTP:', response.status, response.statusText);
+                console.log(' Resposta HTTP:', response.status, response.statusText);
                 
                 const data = await response.json();
-                console.log('📄 Dados recebidos:', data);
+                console.log(' Dados recebidos:', data);
                 
                 if (!response.ok) {
                     throw new Error(data.error || `HTTP ${response.status}`);
@@ -1120,13 +1161,188 @@ function generateWellnessInsight(stats) {
             </button>
         `;
     }
+
+    updateProfessionalUI();
 }
+
+// 🔗 Abrir relatório no microsserviço
+function openDetailedReport() {
+    if (!currentUser || !currentUser.id) {
+        showToast('Faça login para ver relatórios detalhados', 'error');
+        openModal('login-modal');
+        return;
+    }
+    
+    if (currentUser.isDemo) {
+        showToast('Relatórios não disponíveis no modo demo', 'warning');
+        return;
+    }
+    
+    // Abrir relatório em nova aba
+    const reportUrl = `http://localhost:8081/reports/html/${currentUser.id}`;
+    window.open(reportUrl, '_blank');
+    
+    showToast('Abrindo relatório detalhado...', 'success');
+}
+
+// 📊 Função para verificar se report service está disponível
+async function checkReportService() {
+    try {
+        const response = await fetch('http://localhost:8081/health');
+        const data = await response.json();
+        
+        if (data.status === 'healthy') {
+            console.log('✅ Report Service disponível');
+            return true;
+        }
+    } catch (error) {
+        console.log('❌ Report Service não disponível:', error);
+        return false;
+    }
+    return false;
+}
+
+// 🎯 Função para integrar estatísticas básicas do report service
+async function loadStatsFromReportService(userId) {
+    try {
+        const response = await fetch(`http://localhost:8081/reports/user_mood_stats/${userId}?days=7`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Atualizar cards com dados mais detalhados
+            if (data.total_entries_period > 0) {
+                document.getElementById('total-moods').textContent = data.total_entries_all_time;
+                document.getElementById('favorite-mood').textContent = data.most_common_mood || '😊';
+                
+                // Adicionar insight na home
+                const insightText = generateQuickInsight(data);
+                addInsightToHome(insightText);
+            }
+            
+            return data;
+        }
+    } catch (error) {
+        console.log('Report service não disponível, usando dados locais');
+        return null;
+    }
+}
+
+// 💡 Gerar insight rápido para home
+function generateQuickInsight(data) {
+    const totalEntries = data.total_entries_period;
+    const mostCommon = data.most_common_mood;
+    
+    if (totalEntries === 0) {
+        return "Registre seus humores para receber insights personalizados!";
+    }
+    
+    if (totalEntries >= 5) {
+        return `Ótimo! Você registrou ${totalEntries} humores esta semana. Humor predominante: ${getMoodName(mostCommon)}`;
+    }
+    
+    return `Você tem ${totalEntries} registros esta semana. Que tal registrar mais?`;
+}
+
+// 🏠 Adicionar insight visual na home
+function addInsightToHome(insightText) {
+    const heroSection = document.querySelector('.hero');
+    
+    // Verificar se já existe insight
+    let insightDiv = document.getElementById('home-insight');
+    if (!insightDiv) {
+        insightDiv = document.createElement('div');
+        insightDiv.id = 'home-insight';
+        insightDiv.style.cssText = `
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-top: 2rem;
+            text-align: center;
+            animation: fadeInUp 0.5s ease;
+        `;
+        heroSection.appendChild(insightDiv);
+    }
+    
+    insightDiv.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: var(--primary);">
+            <i class="fas fa-lightbulb"></i>
+            <span>${insightText}</span>
+        </div>
+    `;
+}
+
+// 🔄 Atualizar loadQuickStats para usar report service quando disponível
+async function loadQuickStatsEnhanced() {
+    // Carregar stats básicas (função original)
+    await loadQuickStats();
+    
+    // Tentar carregar dados do report service se usuário estiver logado
+    if (currentUser && !currentUser.isDemo && currentUser.id !== 'demo-user-123') {
+        const reportData = await loadStatsFromReportService(currentUser.id);
+        
+        if (reportData) {
+            console.log('📊 Dados do report service carregados');
+        }
+    }
+}
+
+// 🚀 Substituir a chamada original no DOMContentLoaded:
+// loadQuickStats(); 
+// POR:
+// loadQuickStatsEnhanced();
+
+// 📱 Adicionar na navbar (opcional - botão direto para relatórios)
+function addReportsToNavbar() {
+    const navLinks = document.querySelector('.nav-links');
+    
+    if (navLinks && !document.getElementById('reports-nav')) {
+        const reportsLi = document.createElement('li');
+        reportsLi.innerHTML = `
+            <a href="#" id="reports-nav" onclick="openDetailedReport()" style="display: none;">
+                <span><i class="fas fa-chart-bar"></i> Relatórios</span>
+            </a>
+        `;
+        navLinks.appendChild(reportsLi);
+    }
+}
+
+// 🔐 Mostrar/esconder link de relatórios baseado no login
+function updateReportsVisibility() {
+    const reportsNav = document.getElementById('reports-nav');
+    
+    if (reportsNav) {
+        if (isLoggedIn && currentUser && !currentUser.isDemo) {
+            reportsNav.style.display = 'block';
+        } else {
+            reportsNav.style.display = 'none';
+        }
+    }
+}
+
+// 🎯 Chamar quando usuário fizer login/logout
+function updateUserMenuEnhanced() {
+    updateUserMenu(); // Função original
+    updateReportsVisibility(); // Nova função
+}
+
+
 
         function logout() {
     currentUser = null;
     isLoggedIn = false;
     location.reload();
+    
 }
+
+
+
+
+
+
+
+
         // Toast
         function showToast(message, type = 'success') {
     //  Filtrar erro específico do ObjectId
@@ -1143,6 +1359,73 @@ function generateWellnessInsight(stats) {
         toast.classList.remove('show');
     }, 3000);
 }
+
+
+// 👥 FUNÇÕES PARA PROFISSIONAIS
+
+// Carregar lista de pacientes (só profissionais)
+async function loadPatientsList() {
+    if (!currentUser || currentUser.user_type !== 'professional') return;
+    
+    try {
+        const response = await fetch('http://localhost:8081/reports/patients');
+        const data = await response.json();
+        
+        const container = document.getElementById('patients-list');
+        
+        if (data.patients && data.patients.length > 0) {
+            container.innerHTML = data.patients.map(patient => `
+                <div class="patient-item" onclick="openPatientReport('${patient._id}')" style="
+                    display: flex; 
+                    justify-content: space-between; 
+                    align-items: center; 
+                    padding: 1rem; 
+                    margin: 0.5rem 0; 
+                    background: var(--dark); 
+                    border-radius: 0.5rem; 
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='transparent'">
+                    <div>
+                        <strong style="color: var(--light);">${patient.username}</strong><br>
+                        <small style="color: var(--gray);">${patient.email}</small>
+                    </div>
+                    <button class="btn" style="margin: 0;">
+                        <i class="fas fa-chart-line"></i> Ver Relatório
+                    </button>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<p style="text-align: center; color: var(--gray);">Nenhum paciente cadastrado ainda.</p>';
+        }
+        
+    } catch (error) {
+        console.log('Erro ao carregar pacientes:', error);
+        document.getElementById('patients-list').innerHTML = '<p style="text-align: center; color: var(--error);">Erro ao carregar pacientes.</p>';
+    }
+}
+
+// Abrir relatório específico do paciente
+function openPatientReport(patientId) {
+    const reportUrl = `http://localhost:8081/reports/html/${patientId}`;
+    window.open(reportUrl, '_blank');
+    showToast('Abrindo relatório do paciente...', 'success');
+}
+
+// Mostrar/esconder dashboard baseado no tipo de usuário
+function updateProfessionalUI() {
+    const dashboard = document.getElementById('professional-dashboard');
+    
+    if (currentUser && currentUser.user_type === 'professional' && !currentUser.isDemo) {
+        dashboard.style.display = 'block';
+        loadPatientsList(); // Carregar lista automaticamente
+    } else {
+        dashboard.style.display = 'none';
+    }
+}
+
+
+
 
        function getMoodName(emoji) {
          const moodNames = {
