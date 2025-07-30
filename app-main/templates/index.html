@@ -1031,8 +1031,14 @@ function generateWellnessInsight(stats) {
             
             showToast('Login realizado com sucesso! 🎉', 'success');
             closeModal('login-modal');
+            
+            // ATUALIZAR TUDO APÓS LOGIN
             updateUserMenu();
             loadQuickStats();
+            
+            //  RECARREGAR A SEÇÃO ATUAL PARA MOSTRAR OS DADOS CORRETOS
+            const currentSection = document.querySelector('.section.active').id;
+            showSection(currentSection);
             
         } else {
             // LOGIN FALHOU (credenciais erradas, etc.)
@@ -1161,7 +1167,7 @@ function generateWellnessInsight(stats) {
 
        function updateUserMenu() {
     const userMenu = document.querySelector('.user-menu');
-    const isProf = currentUser.user_type === 'professional';
+    const isProf = currentUser && currentUser.user_type === 'professional';
     const icon = isProf ? '🩺' : '👤';
     const prefix = isProf ? 'Dr. ' : '';
     
@@ -1169,9 +1175,9 @@ function generateWellnessInsight(stats) {
     if (isLoggedIn && currentUser && !currentUser.isDemo) {
         userMenu.innerHTML = `
             <span style="margin-right: 1rem;">${icon} ${prefix}${currentUser.username || currentUser.email}</span>
-        <button class="btn secondary" onclick="logout()">
-            <i class="fas fa-sign-out-alt"></i> Sair
-        </button>
+            <button class="btn secondary" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </button>
         `;
     } else {
         userMenu.innerHTML = `
@@ -1182,6 +1188,12 @@ function generateWellnessInsight(stats) {
     }
 
     updateProfessionalUI();
+    
+    
+    const currentSection = document.querySelector('.section.active')?.id;
+    if (currentSection) {
+        setTimeout(() => showSection(currentSection), 100);
+    }
 }
 
 // 🔗 Abrir relatório no microsserviço
