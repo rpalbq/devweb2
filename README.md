@@ -14,7 +14,6 @@ O Registra.Mood oferece um conjunto abrangente de funcionalidades, adaptadas par
 
 * **Registro de Humor Diário:** Uma forma simples e visual de registrar seu estado emocional (via emojis) e adicionar comentários detalhados.
 * **Associação Musical:** Conecte suas emoções a músicas específicas, criando uma trilha sonora para sua jornada de bem-estar.
-* **Histórico Detalhado:** Acesse um registro completo de todos os seus humores passados, permitindo uma revisão visual e temporal do seu bem-estar.
 * **Acompanhamento Pessoal:** Obtenha uma visão geral da sua evolução emocional ao longo do tempo.
 
 ### Para **Profissionais** 🧑‍⚕️
@@ -74,11 +73,10 @@ Para colocar o Registra.Mood em funcionamento em sua máquina, você precisará 
     ```bash
     docker-compose up --build
     ```
-    Este comando é poderoso! Ele irá:
+    Este comando irá:
     * Construir as imagens Docker personalizadas para o `app-main` e o `report-service` (com base nos `Dockerfile`s presentes em seus respectivos diretórios).
     * Baixar as imagens oficiais do `mongo` e `mongo-express` do Docker Hub.
     * Criar e iniciar todos os contêineres definidos no `docker-compose.yml` em uma rede isolada.
-    * Configurar o volume `mongo_data` para persistir seus dados do MongoDB.
 
 3.  **Acesse a Aplicação:**
     Uma vez que todos os serviços estejam em execução, você pode acessá-los através do seu navegador:
