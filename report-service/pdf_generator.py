@@ -5,7 +5,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, timedelta
 import models
 
 def get_mood_name(emoji):
@@ -101,7 +101,9 @@ def generate_mood_report_pdf(user_id, days=30, is_professional=False):
         elements.append(Paragraph(f"<b>Usuário:</b> {username}", normal_style))
     
     elements.append(Paragraph(f"<b>Período:</b> Últimos {days} dias", normal_style))
-    elements.append(Paragraph(f"<b>Gerado em:</b> {datetime.now().strftime('%d/%m/%Y às %H:%M')}", normal_style))
+    now_local = datetime.now()
+    now_brazil = datetime.utcnow() - timedelta(hours=3)
+    elements.append(Paragraph(f"<b>Gerado em:</b> {now_brazil.strftime('%d/%m/%Y às %H:%M')}", normal_style))
     elements.append(Spacer(1, 20))
     
     # 📊 RESUMO GERAL
@@ -236,7 +238,7 @@ def generate_mood_report_pdf(user_id, days=30, is_professional=False):
     )
     
     elements.append(Paragraph(footer_text, footer_style))
-    elements.append(Paragraph(f"Gerado por Registra.Mood em {datetime.now().strftime('%d/%m/%Y')}", footer_style))
+    elements.append(Paragraph(f"Gerado por Registra.Mood em {now_brazil.strftime('%d/%m/%Y')}", footer_style))
     
     # Construir PDF
     doc.build(elements)
