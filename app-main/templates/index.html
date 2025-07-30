@@ -537,9 +537,8 @@ function selectUserType(userType) {
         }
 
         // Navigation
-      function showSection(sectionName) {
-
-    // Apenas navegar sem abrir modal automaticamente
+     function showSection(sectionName) {
+    // Navegar entre seções
     document.querySelectorAll('.section').forEach(section => {
         section.classList.remove('active');
     });
@@ -553,15 +552,26 @@ function selectUserType(userType) {
             break;
         case 'stats':
             loadDetailedStats(); // Vai mostrar cadeado se não tiver login
+            
+            // Mostrar card de PDF pessoal apenas se logado (não demo)
+            const personalPdfCard = document.getElementById('personal-pdf-card');
+            if (personalPdfCard) {
+                if (isLoggedIn && currentUser && !currentUser.isDemo) {
+                    personalPdfCard.style.display = 'block';
+                } else {
+                    personalPdfCard.style.display = 'none';
+                }
+            }
             break;
         case 'track':
-            // Registrar funciona para todos
-            if (!currentUser) {
-                // showToast('Modo demonstração ativo!', 'successo');
-            }
+            // Não chamar mais showTrackingGuidanceForGuests()
+            // O bloqueio já acontece no formulário quando tentar enviar
             break;
     }
 }
+
+
+
         // Funções modal
         function openModal(modalId) {
             document.getElementById(modalId).classList.add('active');
@@ -596,36 +606,32 @@ function selectUserType(userType) {
         }
 
         // Função makeRequest com debug
-        async function makeRequest(url, options = {}) {
-            try {
-                console.log('🔄 Fazendo requisição para:', API_BASE + url);
-                console.log('📦 Dados enviados:', options.body);
-                
-                const response = await fetch(API_BASE + url, {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    method: options.method || 'GET',
-                    body: options.body
-                });
-                
-                console.log(' Resposta HTTP:', response.status, response.statusText);
-                
-                const data = await response.json();
-                console.log(' Dados recebidos:', data);
-                
-                if (!response.ok) {
-                    throw new Error(data.error || `HTTP ${response.status}`);
-                }
-                
-                return data;
-                
-            } catch (error) {
-                console.error('❌ Erro na requisição:', error);
-                showToast(`Erro: ${error.message}`, 'error');
-                throw error;
-            }
-        }   
+       async function makeRequest(url, options = {}) {
+    try {
+        console.log('🔄 Fazendo requisição para:', API_BASE + url);
+        console.log('📦 Dados enviados:', options.body);
+        
+        const response = await fetch(API_BASE + url, {
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            method: options.method || 'GET',
+            body: options.body
+        });
+        
+        console.log('📡 Resposta HTTP:', response.status, response.statusText);
+        
+        const data = await response.json();
+        console.log('📊 Dados recebidos:', data);
+        
+        //  SEMPRE RETORNAR OS DADOS --- deixar cada função decidir o que fazer
+        return data;
+        
+    } catch (error) {
+        console.error('❌ Erro na requisição:', error);
+        throw error;
+    }
+}
 
 
 
@@ -673,7 +679,7 @@ function selectUserType(userType) {
 
         async function loadQuickStats() {
     try {
-        // ✅ CORREÇÃO: Sempre tentar carregar stats, mesmo para demo
+        // Sempre tentar carregar stats, mesmo para usuario demo
         if (currentUser && currentUser.id && currentUser.id !== 'demo-user-123') {
             // Usuário real logado
             const statsResult = await makeRequest(`/stats/user/${currentUser.id}`);
@@ -683,7 +689,7 @@ function selectUserType(userType) {
                 document.getElementById('favorite-mood').textContent = statsResult.most_common_mood || '😊';
             }
         } else if (currentUser && currentUser.id === 'demo-user-123') {
-            // ✅ PARA USUÁRIO DEMO, CONTAR DO BANCO MESMO ASSIM
+            // PARA USUÁRIO DEMO, CONTAR DO BANCO MESMO ASSIM
             try {
                 const statsResult = await makeRequest(`/stats/user/${currentUser.id}`);
                 if (statsResult && !statsResult.error) {
@@ -696,7 +702,7 @@ function selectUserType(userType) {
             }
         }
         
-        // ✅ MÚSICAS - sempre carregar do servidor
+        //  MÚSICAS - sempre carregar do servidor
         try {
             const songsResult = await makeRequest('/songs');
             if (songsResult && songsResult.songs) {
@@ -906,138 +912,146 @@ function generateWellnessInsight(stats) {
 
         // FUNÇÃO PRINCIPAL: Form Handlers COM CORREÇÃO DO USUÁRIO DEMO
         function setupFormHandlers() {
-            console.log('📝 Configurando form handlers...');
+    console.log(' Configurando form handlers...');
+    
+    const formulario = document.getElementById('mood-form');
+    if (formulario) {
+        formulario.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            console.log(' Formulário enviado!');
             
-            const formulario = document.getElementById('mood-form');
-            if (formulario) {
-                formulario.addEventListener('submit', async function(e) {
-                    e.preventDefault();
-                    console.log('📝 Formulário enviado!');
+            //  BLOQUEAR se não estiver logado
+            if (!isLoggedIn || !currentUser || currentUser.isDemo) {
+                console.log('❌ Tentativa de registro sem login válido');
+                showToast('Faça login para registrar seu humor', 'error');
+                openModal('login-modal');
+                return; // PARAR AQUI
+            }
+            
+            if (!selectedEmoji) {
+                console.log('❌ Nenhum emoji selecionado');
+                showToast('Por favor, selecione um humor', 'error');
+                return;
+            }
+            
+            const songSelect = document.getElementById('song-select');
+            const customSong = document.getElementById('custom-song');
+            const songId = songSelect.value;
+            const comment = document.getElementById('mood-comment').value;
+            
+            try {
+                let finalSongId = songId;
+                
+                // Se for música customizada, criar primeiro
+                if (songId === 'custom') {
+                    console.log('🎵 Criando música customizada:', customSong.value);
                     
-                    if (!selectedEmoji) {
-                        console.log('❌ Nenhum emoji selecionado');
-                        showToast('Por favor, selecione um humor', 'error');
+                    const songData = customSong.value.split(' - ');
+                    const newSongResult = await makeRequest('/songs', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            title: songData[0] || customSong.value,
+                            artist: songData[1] || 'Artista Desconhecido',
+                            spotify_url: 'custom-song',
+                            genres: []
+                        })
+                    });
+                    
+                    if (newSongResult.success) {
+                        finalSongId = newSongResult.song_id;
+                        console.log('✅ Música criada com ID:', finalSongId);
+                        await loadSongs(); // Recarregar músicas do servidor
+                        updateSongSelect(); // Atualizar o select
+                        showToast('Música adicionada! ✨', 'success');
+                    } else {
+                        console.log('❌ Erro ao criar música:', newSongResult);
+                        showToast('Erro ao criar música', 'error');
                         return;
                     }
-                    
-                    const songSelect = document.getElementById('song-select');
-                    const customSong = document.getElementById('custom-song');
-                    const songId = songSelect.value;
-                    const comment = document.getElementById('mood-comment').value;
+                }
 
-                    // GARANTIR USUÁRIO DEMO EXISTE ANTES DE SALVAR
-                    if (!currentUser) {
-                        console.log('🔄 Criando usuário demo...');
-                        showToast('Criando usuário demo...', 'success');
-                        await criarUsuarioDemo();
-                    }
-                    
-                    try {
-                        let finalSongId = songId;
-                        
-                        // Se for música customizada, criar primeiro
-                        if (songId === 'custom') {
-                            console.log('🎵 Criando música customizada:', customSong.value);
-                            
-                            const songData = customSong.value.split(' - ');
-                            const newSongResult = await makeRequest('/songs', {
-                                method: 'POST',
-                                body: JSON.stringify({
-                                    title: songData[0] || customSong.value,
-                                    artist: songData[1] || 'Artista Desconhecido',
-                                    spotify_url: 'custom-song',
-                                    genres: []
-                                })
-                            });
-                            
-                            if (newSongResult.success) {
-                                finalSongId = newSongResult.song_id;
-                                console.log('✅ Música criada com ID:', finalSongId);
-                                await loadSongs(); // Recarregar músicas do servidor
-                                updateSongSelect(); // Atualizar o select
-                                showToast('Música adicionada! ✨', 'success');
-                            } else {
-                                console.log('❌ Erro ao criar música:', newSongResult);
-                                showToast('Erro ao criar música', 'error');
-                                return;
-                            }
-                        }
+                // Criar entrada de mood - APENAS para usuários logados
+                console.log('😊 Criando entrada de mood para usuário:', currentUser.id);
+                const moodData = {
+                    user_id: currentUser.id,
+                    emoji: selectedEmoji,
+                    comment: comment
+                };
+                
+                // Adicionar música APENAS se selecionada
+                if (finalSongId && finalSongId !== '' && finalSongId !== 'custom') {
+                    moodData.song_id = finalSongId;
+                }
 
-                        // Criar entrada de mood
-                        console.log('😊 Criando entrada de mood para usuário:', currentUser.id);
-                        const moodData = {
-                            user_id: currentUser.id,
-                            emoji: selectedEmoji,
-                            comment: comment
-                        };
-                        
+                console.log('📊 Dados do mood:', moodData);
 
-                         // Adicionar música APENAS se selecionada
-                        if (finalSongId && finalSongId !== '' && finalSongId !== 'custom') {
-                            moodData.song_id = finalSongId;
-                        }
-
-                        console.log(' Dados do mood:', moodData);  // 
-
-                        const result = await makeRequest('/moods', {
-                            method: 'POST',
-                            body: JSON.stringify(moodData)
-                        });
-                        
-                        if (result.success) {
-                            console.log('✅ Mood salvo com sucesso!');
-                            showToast('Humor registrado com sucesso! ✨');
-                            resetMoodForm();
-                            loadQuickStats();
-                        } else {
-                            console.log('❌ Erro ao salvar mood:', result);
-                            showToast('Erro ao registrar humor', 'error');
-                        }
-                        
-                    } catch (error) {
-                        console.error('💥 Erro geral:', error);
-                        showToast(`Erro: ${error.message}`, 'error');
-                    }
+                const result = await makeRequest('/moods', {
+                    method: 'POST',
+                    body: JSON.stringify(moodData)
                 });
                 
-                console.log('✅ Handler do formulário configurado');
+                if (result.success) {
+                    console.log('✅ Mood salvo com sucesso!');
+                    showToast('Humor registrado com sucesso! ✨');
+                    resetMoodForm();
+                    loadQuickStats();
+                } else {
+                    console.log('❌ Erro ao salvar mood:', result);
+                    showToast('Erro ao registrar humor', 'error');
+                }
+                
+            } catch (error) {
+                console.error('💥 Erro geral:', error);
+                showToast(`Erro: ${error.message}`, 'error');
             }
+        });
+        
+        console.log('✅ Handler do formulário configurado');
+    }
 
             // Handlers para login e registro
-          document.getElementById('login-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    
+    try {
+        const result = await makeRequest('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
         
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
-        
-        try {
-            const result = await makeRequest('/auth/login', {
-                method: 'POST',
-                body: JSON.stringify({ email, password })
-            });
+        //  TRATAR RESPOSTA BASEADO NO CAMPO 'success'
+        if (result && result.success) {
+            // LOGIN SUCESSO
+            currentUser = { 
+                id: result.user._id, 
+                email: result.user.email,
+                username: result.user.username,
+                user_type: result.user.user_type,
+                isDemo: false
+            };
+            isLoggedIn = true;
             
-            if (result.success) {
-                // USUÁRIO REAL LOGADO - não é demo
-                currentUser = { 
-                    id: result.user._id, 
-                    email: result.user.email,
-                    username: result.user.username,
-                    user_type: result.user.user_type,
-                    isDemo: false // USUÁRIO REAL
-                };
-                isLoggedIn = true; // MARCAR COMO LOGADO
-                
-                showToast('Login realizado com sucesso! 🎉');
-                closeModal('login-modal');
-                updateUserMenu();
-                loadQuickStats();
-            } else {
-                showToast(result.error || 'Erro no login', 'error');
-            }
-        } catch (error) {
-            showToast('Erro no login', 'error');
+            showToast('Login realizado com sucesso! 🎉', 'success');
+            closeModal('login-modal');
+            updateUserMenu();
+            loadQuickStats();
+            
+        } else {
+            // LOGIN FALHOU (credenciais erradas, etc.)
+            const errorMsg = result?.error || 'Credenciais inválidas';
+            console.log('❌ Login falhou:', errorMsg);
+            showToast(errorMsg, 'error');
         }
-    });
+        
+    } catch (error) {
+        // ERRO DE CONEXÃO
+        console.error('💥 Erro de conexão:', error);
+        showToast('Erro de conexão com o servidor', 'error');
+    }
+});
 
 
 
@@ -1195,7 +1209,7 @@ function openDetailedReport() {
     showToast('Abrindo relatório detalhado...', 'success');
 }
 
-// 📊 Função para verificar se report service está disponível
+//  Função para verificar se report service está disponível
 async function checkReportService() {
     try {
         const response = await fetch('http://localhost:8081/health');
@@ -1212,7 +1226,7 @@ async function checkReportService() {
     return false;
 }
 
-// 🎯 Função para integrar estatísticas básicas do report service
+//  Função para integrar estatísticas básicas do report service
 async function loadStatsFromReportService(userId) {
     try {
         const response = await fetch(`http://localhost:8081/reports/user_mood_stats/${userId}?days=7`);
@@ -1238,7 +1252,7 @@ async function loadStatsFromReportService(userId) {
     }
 }
 
-// 💡 Gerar insight rápido para home
+//  Gerar insight rápido para home
 function generateQuickInsight(data) {
     const totalEntries = data.total_entries_period;
     const mostCommon = data.most_common_mood;
@@ -1254,7 +1268,7 @@ function generateQuickInsight(data) {
     return `Você tem ${totalEntries} registros esta semana. Que tal registrar mais?`;
 }
 
-// 🏠 Adicionar insight visual na home
+//  Adicionar insight visual na home
 function addInsightToHome(insightText) {
     const heroSection = document.querySelector('.hero');
     
@@ -1283,7 +1297,7 @@ function addInsightToHome(insightText) {
     `;
 }
 
-// 🔄 Atualizar loadQuickStats para usar report service quando disponível
+//  Atualizar loadQuickStats para usar report service quando disponível
 async function loadQuickStatsEnhanced() {
     // Carregar stats básicas (função original)
     await loadQuickStats();
@@ -1293,17 +1307,12 @@ async function loadQuickStatsEnhanced() {
         const reportData = await loadStatsFromReportService(currentUser.id);
         
         if (reportData) {
-            console.log('📊 Dados do report service carregados');
+            console.log(' Dados do report service carregados');
         }
     }
 }
 
-// 🚀 Substituir a chamada original no DOMContentLoaded:
-// loadQuickStats(); 
-// POR:
-// loadQuickStatsEnhanced();
-
-// 📱 Adicionar na navbar (opcional - botão direto para relatórios)
+// Adicionar na navbar (também com opçao de botão direto para relatórios)
 function addReportsToNavbar() {
     const navLinks = document.querySelector('.nav-links');
     
@@ -1318,7 +1327,7 @@ function addReportsToNavbar() {
     }
 }
 
-// 🔐 Mostrar/esconder link de relatórios baseado no login
+//  Mostrar/esconder link de relatórios baseado no login
 function updateReportsVisibility() {
     const reportsNav = document.getElementById('reports-nav');
     
@@ -1331,7 +1340,7 @@ function updateReportsVisibility() {
     }
 }
 
-// 🎯 Chamar quando usuário fizer login/logout
+// Chamar quando usuário fizer login/logout
 function updateUserMenuEnhanced() {
     updateUserMenu(); // Função original
     updateReportsVisibility(); // Nova função
@@ -1355,10 +1364,16 @@ function updateUserMenuEnhanced() {
 
         // Toast
         function showToast(message, type = 'success') {
-    //  Filtrar erro específico do ObjectId
-    if (message && message.includes('Object of type ObjectId is not JSON serializable')) {
-        console.log('🔇 Erro ObjectId filtrado (aplicação funcionando normalmente)');
-        return; // NÃO MOSTRAR esse erro
+    //  Filtrar mensagens específicas que não queremos mostrar
+    const filteredMessages = [
+        'Object of type ObjectId is not JSON serializable',
+        'HTTP 401',
+        'HTTP 400'
+    ];
+    
+    if (message && filteredMessages.some(filtered => message.includes(filtered))) {
+        console.log('🔇 Mensagem filtrada:', message);
+        return;
     }
     
     const toast = document.getElementById('toast');
@@ -1370,8 +1385,7 @@ function updateUserMenuEnhanced() {
     }, 3000);
 }
 
-
-// 👥 FUNÇÕES PARA PROFISSIONAIS
+//  FUNÇÕES PARA PROFISSIONAIS
 
 // Carregar lista de pacientes (só profissionais)
 async function loadPatientsList() {
