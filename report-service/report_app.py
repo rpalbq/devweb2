@@ -3,9 +3,36 @@ from flask_cors import CORS
 import os
 from pymongo import MongoClient
 import models
+import json
+from bson import ObjectId
+
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        return super().default(o)
+
+def serialize_document(doc):
+    """Converte recursivamente ObjectIds para strings"""
+    if isinstance(doc, dict):
+        return {key: serialize_document(value) for key, value in doc.items()}
+    elif isinstance(doc, list):
+        return [serialize_document(item) for item in doc]
+    elif isinstance(doc, ObjectId):
+        return str(doc)
+    else:
+        return doc
+
+
 
 app = Flask(__name__)
 CORS(app)
+app.json_encoder = JSONEncoder
+
+
+
+
 
 
 # Conexão MongoDB
@@ -94,7 +121,8 @@ def get_user_mood_statistics(user_id):
             return jsonify(stats), 400
         
         print(f"✅ Relatório gerado com sucesso: {stats['total_entries_period']} entradas")
-        return jsonify(stats), 200
+        clean_stats = serialize_document(stats)
+        return jsonify(clean_stats), 200
 
     except Exception as e:
         print(f"❌ Erro ao gerar relatório para o usuário {user_id}: {e}")

@@ -106,7 +106,8 @@ def create_user():
         result = models.create_user(
             username=data['username'],
             email=data['email'],
-            password_hash=password_hash
+            password_hash=password_hash,
+            user_type="patient"
         )
         
         if 'error' in result:

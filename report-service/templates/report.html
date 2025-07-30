@@ -19,8 +19,8 @@
     <div class="container-report">
         <div class="report-header">
             <h1><i class="fas fa-chart-line"></i> Relatório de Humor</h1>
-            <button class="btn-back" onclick="window.history.back()">
-                <i class="fas fa-arrow-left"></i> Voltar
+            <button class="btn-back" onclick="voltarParaEstatisticas()">
+               <i class="fas fa-arrow-left"></i> Voltar
             </button>
         </div>
 
@@ -357,6 +357,20 @@
             animateParticles();
             loadReportData();
         });
+
+//  Função para voltar para a aba de estatísticas
+function voltarParaEstatisticas() {
+    // Tentar fechar a aba atual e voltar para o app principal
+    if (window.opener) {
+        // Se foi aberta pelo app principal, fechar esta aba
+        window.close();
+    } else {
+        // Senão, redirecionar para a aba de estatísticas do app principal
+        window.location.href = 'http://localhost:8080/#stats';
+    }
+}
+
+
     </script>
 </body>
 </html>

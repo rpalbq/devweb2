@@ -198,22 +198,7 @@
             </div>
         </section>
 
-        <!-- Seção stats -->
-        <section id="stats" class="section">
-            <div class="mood-section">
-                <h2>Estatísticas Detalhadas</h2>
-                <div id="detailed-stats">
-                    <!-- Stats vão ser carregados aqui -->
-                </div>
-            </div>
 
-            <div class="card" style="grid-column: span 2;">
-    <h3><i class="fas fa-file-alt"></i> Relatórios Detalhados</h3>
-    <p>Visualize relatórios completos com insights personalizados</p>
-    <button class="btn" onclick="openDetailedReport()" style="margin-top: 1rem;">
-        <i class="fas fa-chart-line"></i> Ver Relatório Completo
-    </button>
-</div>
 
 <!-- Seção stats -->
 <section id="stats" class="section">
@@ -1018,6 +1003,7 @@ function generateWellnessInsight(stats) {
                     id: result.user._id, 
                     email: result.user.email,
                     username: result.user.username,
+                    user_type: result.user.user_type,
                     isDemo: false // USUÁRIO REAL
                 };
                 isLoggedIn = true; // MARCAR COMO LOGADO
