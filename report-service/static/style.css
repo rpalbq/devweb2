@@ -35,7 +35,7 @@ body {
     padding: 20px; 
 }
 
-/* 🌌 Fundo animado */
+/* Fundo animado */
 .bg-animation {
     position: fixed;
     width: 100%;
@@ -149,7 +149,7 @@ h2 {
     gap: 0.5rem;
 }
 
-/* ℹ️ Informações do header */
+/*  Informações do header */
 .header-info {
     background: var(--dark-light); 
     padding: 1.5rem;
@@ -161,14 +161,15 @@ h2 {
 .header-info p {
     margin: 0.5rem 0;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 0.5rem;
 }
 
 .header-info strong {
     color: var(--accent);
 }
 
-/* 📈 Cards de resumo */
+/* Cards de resumo */
 .summary-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

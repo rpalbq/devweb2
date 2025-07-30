@@ -226,6 +226,25 @@
             <p style="text-align: center; color: var(--gray);">Carregando pacientes...</p>
         </div>
     </div>
+
+    <div class="card" id="personal-pdf-card" style="grid-column: span 2; display: none;">
+        <h3><i class="fas fa-file-pdf"></i> Baixar Relatório Pessoal</h3>
+        <p>Baixe um relatório completo em PDF com suas estatísticas de humor dos últimos 30 dias</p>
+        <button class="btn" onclick="downloadMyReport()" style="margin-top: 1rem;">
+            <i class="fas fa-download"></i> Baixar Meu Relatório PDF
+        </button>
+    </div>
+
+
+    <div class="card" id="professional-dashboard" style="display: none; grid-column: span 2;">
+        <h3><i class="fas fa-users"></i> Pacientes Cadastrados</h3>
+        <p>Clique em um paciente para ver seu relatório ou baixar em PDF</p>
+        <div id="patients-list">
+            <p style="text-align: center; color: var(--gray);">Carregando pacientes...</p>
+        </div>
+    </div>
+
+
 </section>
 
 
@@ -1133,12 +1152,17 @@ function generateWellnessInsight(stats) {
 
        function updateUserMenu() {
     const userMenu = document.querySelector('.user-menu');
+    const isProf = currentUser.user_type === 'professional';
+    const icon = isProf ? '🩺' : '👤';
+    const prefix = isProf ? 'Dr. ' : '';
+    
+
     if (isLoggedIn && currentUser && !currentUser.isDemo) {
         userMenu.innerHTML = `
-            <span style="margin-right: 1rem;">👤 ${currentUser.username || currentUser.email}</span>
-            <button class="btn secondary" onclick="logout()">
-                <i class="fas fa-sign-out-alt"></i> Sair
-            </button>
+            <span style="margin-right: 1rem;">${icon} ${prefix}${currentUser.username || currentUser.email}</span>
+        <button class="btn secondary" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i> Sair
+        </button>
         `;
     } else {
         userMenu.innerHTML = `
@@ -1361,7 +1385,7 @@ async function loadPatientsList() {
         
         if (data.patients && data.patients.length > 0) {
             container.innerHTML = data.patients.map(patient => `
-                <div class="patient-item" onclick="openPatientReport('${patient._id}')" style="
+                <div class="patient-item" style="
                     display: flex; 
                     justify-content: space-between; 
                     align-items: center; 
@@ -1369,16 +1393,21 @@ async function loadPatientsList() {
                     margin: 0.5rem 0; 
                     background: var(--dark); 
                     border-radius: 0.5rem; 
-                    cursor: pointer;
+                    border: 1px solid var(--glass-border);
                     transition: all 0.3s ease;
-                " onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='transparent'">
+                " onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--glass-border)'">
                     <div>
                         <strong style="color: var(--light);">${patient.username}</strong><br>
                         <small style="color: var(--gray);">${patient.email}</small>
                     </div>
-                    <button class="btn" style="margin: 0;">
-                        <i class="fas fa-chart-line"></i> Ver Relatório
-                    </button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn" onclick="openPatientReport('${patient._id}')" style="margin: 0; font-size: 0.875rem;">
+                            <i class="fas fa-chart-line"></i> Ver Online
+                        </button>
+                        <button class="btn secondary" onclick="downloadPatientReport('${patient._id}')" style="margin: 0; font-size: 0.875rem;">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                    </div>
                 </div>
             `).join('');
         } else {
@@ -1409,6 +1438,75 @@ function updateProfessionalUI() {
         dashboard.style.display = 'none';
     }
 }
+
+
+// Baixar PDF do próprio usuário
+function downloadMyReport() {
+    if (!currentUser || !currentUser.id) {
+        showToast('Faça login para baixar seu relatório', 'error');
+        openModal('login-modal');
+        return;
+    }
+    
+    if (currentUser.isDemo) {
+        showToast('Relatórios em PDF não disponíveis no modo demo', 'warning');
+        return;
+    }
+    
+    showToast('Gerando seu relatório PDF...', 'success');
+    
+    // Fazer download direto
+    const downloadUrl = `http://localhost:8081/reports/pdf/${currentUser.id}?days=30&professional=false`;
+    
+    // Criar link temporário para download
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = ''; // Nome será definido pelo servidor
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast('Download iniciado! 📄', 'success');
+}
+
+// Baixar PDF de um paciente (para profissionais)
+function downloadPatientReport(patientId) {
+    if (!currentUser || currentUser.user_type !== 'professional') {
+        showToast('Apenas profissionais podem baixar relatórios de pacientes', 'error');
+        return;
+    }
+    
+    showToast('Gerando relatório do paciente...', 'success');
+    
+    const downloadUrl = `http://localhost:8081/reports/pdf/${patientId}?days=30&professional=true`;
+    
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast('Download do relatório do paciente iniciado! 📄', 'success');
+}
+
+// Testar PDF (função de desenvolvimento)
+function testPdfGeneration() {
+    showToast('Testando geração de PDF...', 'success');
+    
+    const testUrl = 'http://localhost:8081/test-pdf';
+    
+    const link = document.createElement('a');
+    link.href = testUrl;
+    link.download = 'teste_pdf.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast('Teste de PDF iniciado!', 'success');
+}
+
+
 
 
 
